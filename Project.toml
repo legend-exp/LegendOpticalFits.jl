@@ -1,0 +1,12 @@
+name = "LegendOpticalFits"
+uuid = "bbb9fcaf-2b60-4c6b-9c8a-4fdd17999abf"
+version = "0.1.0"
+
+[deps]
+
+[weakdeps]
+
+[extensions]
+
+[compat]
+julia = "1.10"
