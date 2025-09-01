@@ -1,3 +1,27 @@
+"""
+    expected_no_light_fraction(scaling_factors, log_p0_nominal, x0_random_coin[, multiplicity_thr])
+
+Expected fraction of events in which a SiPM channel sees no light.
+
+Computes the expected fraction by looping over the rows (events) in
+`log_p0_nominal`. It samples the expected light/no-light observable by combining
+the probability to see no light `p0` with the random coincidence data (at
+the same row index). If a multiplicity threshold is specified, events with
+lower multiplicity are discarded.
+
+# Arguments
+- `scaling_factors`: scaling factors for each SiPM channel.
+- `log_p0_nominal`: logarithm of the probability to see no light for each
+  (event, channel), typically from simulations.
+- `x0_random_coin`: presence of light from random coincidences for each
+  (event, channel). This is typically coming from a measurement.
+- `multiplicity_thr`: discard events with multiplicity below this threshold
+  (optional, defaults to 0).
+
+# Returns
+- Vector of expectation values for each channel, ordered as the input data
+  structures.
+"""
 function expected_no_light_fraction(
     scaling_factors::AbstractVector{<:Float64},
     log_p0_nominal::AbstractMatrix{<:Float64},
@@ -5,26 +29,6 @@ function expected_no_light_fraction(
     ;
     multiplicity_thr::Int = 0
 )
-    """Expected fraction of events in which a SiPM channel sees no light.
-
-    Computes the expected fraction by looping over the rows (events) in
-    `log_p0_nominal`. It samples the expected light/no-light observable by combining
-    the probability to see no light `p0` with the random coincidence data (at
-    the same row index). If a multiplicity threshold is specified, events with
-    lower multiplicity are discarded.
-
-    # Arguments
-    - `scaling_factors`: scaling factors for each SiPM channel.
-    - `log_p0_nominal`: logarithm of the probability to see no light for each
-      (event, channel), typically from simulations.
-    - `x0_random_coin`: presence of light from random coincidences for each
-      (event, channel). This is typically coming from a measurement.
-    - `multiplicity_thr`: discard events with multiplicity below this threshold.
-
-    # Returns
-    - Vector of expectation values for each channel, ordered as the input data
-      structures.
-    """
     n_events, n_channels = size(log_p0_nominal)
 
     # avoid numerical issues
