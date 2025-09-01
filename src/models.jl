@@ -1,7 +1,7 @@
 """
     expected_no_light_fraction(scaling_factors, log_p0_nominal, x0_random_coin[, multiplicity_thr])
 
-"Expected fraction of events in which a SiPM channel sees no light.
+Expected fraction of events in which a SiPM channel sees no light.
 
 Computes the expected fraction by looping over the rows (events) in
 `log_p0_nominal`. It samples the expected light/no-light observable by combining
