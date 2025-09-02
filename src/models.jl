@@ -101,3 +101,32 @@ function _version_bulk_ops(
     return sum(drawn[mask, :], dims=1) / count(mask)
 end
 =#
+
+function simulate_ar39_log_p0_nominal(optmap, n_events; light_yield = 60)
+    # load Ar39 beta spectrum
+    dist_ar39 = load_ar39_spectrum("./ar39.csv")
+
+    n_channels = length(collect(keys(optmap)))
+
+    # get n_events beta energies
+    sampled_energies = rand(dist_ar39, n_events)
+    # get expected number of photons
+    mean_ar39_photons = rand.(Poisson.(sampled_energies .* light_yield))
+
+    p0_nom = zeros(n_events, n_channels)
+    for event_idx in 1:n_events
+        # get valid lar voxel
+        point = sample_valid_point(optmap[1])
+        # get how many scintillation photons for this event
+        n = mean_ar39_photons[event_idx]
+
+        # store map values at point for all channels
+        for ch_idx in 1:n_channels
+            ξ = optmap[ch_idx][point...]
+            # get expected number of detected photons with efficiency 1
+            p0_nom[event_idx, ch_idx] = -n * ξ
+        end
+    end
+
+    return p0_nom
+end
