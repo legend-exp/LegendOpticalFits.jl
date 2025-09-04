@@ -25,3 +25,18 @@ function ar39_beta_energy_dist()
 end
 
 export ar39_beta_energy_dist
+
+
+function _h5read_revdims_array(fstream::HDF5.File, dset::AbstractString)
+    d = fstream[dset]
+    A = Array{eltype(d)}(undef, reverse(size(d)))
+    permutedims!(A, read(d), ndims(d):-1:1)
+    return A
+end
+
+function _read_histogram(fstream::LHDataStore, name::AbstractString)
+    binning = fstream["$name/binning"]
+    isdensity = fstream["$name/isdensity"]
+    weights = _h5read_revdims_array(fstream.data_store, "$name/weights")
+    return LegendHDF5IO._nt_to_histogram((binning = binning, isdensity = isdensity, weights = weights))
+end
