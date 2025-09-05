@@ -2,7 +2,7 @@ using Test
 using LegendOpticalFits
 
 
-@testset "test forward models" begin
+@testset "forward models" begin
     @testset "no-light probability" begin
         n_events = 1000
         n_channels = 10
