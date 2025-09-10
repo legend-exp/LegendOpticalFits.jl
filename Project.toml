@@ -4,6 +4,7 @@ version = "0.1.0"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LegendDataManagement = "9feedd95-f0e0-423f-a8dc-de0970eae6b3"
@@ -11,11 +12,13 @@ LegendHDF5IO = "c9265ca6-b027-5446-b1a4-febfa8dd10b0"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [extensions]
 
 [compat]
 CSV = "0.10.15"
+DensityInterface = "0.4.0"
 Distributions = "0.25.120"
 HDF5 = "0.17.2"
 LegendDataManagement = "0.5.6"
@@ -23,4 +26,5 @@ LegendHDF5IO = "0.1.17"
 Pkg = "1.10"
 Random = "1.10"
 StatsBase = "0.34.6"
+TypedTables = "1.4.6"
 julia = "1.10"

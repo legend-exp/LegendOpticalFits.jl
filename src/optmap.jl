@@ -22,3 +22,34 @@ function load_optical_maps(filename::AbstractString, runsel::RunSelLike)::Dict{S
 end
 
 export load_optical_maps
+
+
+function sample_valid_point(optmap::Dict{Symbol,<:StatsBase.Histogram}; zlims::Tuple{<:Integer,<:Integer}=(20,180))::Tuple{Int,Int,Int}
+
+    # histogram for the first channel, as all have the same dimension
+    h = first(values(optmap))
+    xdim, ydim, zdim = size(h.weights)
+
+    zmin, zmax = zlims
+    if zmax > zdim
+        error("zmax=$(zmax) exceeds available z-dimension (zdim=$(zdim))")
+    end
+
+    trials = 0
+    while true
+        trials += 1
+        x = rand(1:xdim)
+        y = rand(1:ydim)
+        z = rand(zmin:zmax)
+        hprob = h.weights[x, y, z]
+        if hprob != -1
+            return (x, y, z)
+        end
+        # add a break condition to avoid infinite loop
+        if trials > 100
+            error("too many trials with invalid hprob (-1)")
+        end
+    end
+end
+
+export sample_valid_point

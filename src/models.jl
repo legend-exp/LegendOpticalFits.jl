@@ -39,9 +39,9 @@ function expected_no_light_fraction(
     # outcome of bernoulli trials Ber(p0)
     x0 = zeros(Bool, n_channels)
     # number of events with no light, per channel
-    λ0 = zeros(n_channels)
+    N0 = zeros(n_channels)
     # number of events that pass the multiplicity condition
-    N0 = 0
+    N = 0
 
     @inbounds @simd for i in 1:n_events
         # set multiplicity to maximum possible
@@ -61,13 +61,13 @@ function expected_no_light_fraction(
         # finally check if the multiplicity condition is satisfied, if yes use the event
         if multiplicity >= multiplicity_thr
             @inbounds @simd for k in 1:n_channels
-                λ0[k] += x0[k]
+                N0[k] += x0[k]
             end
-            N0 += 1
+            N += 1
         end
     end
 
-    return λ0 ./ N0
+    return N0 ./ N
 end
 
 export expected_no_light_fraction
@@ -102,31 +102,41 @@ function _version_bulk_ops(
 end
 =#
 
-function simulate_ar39_log_p0_nominal(optmap, n_events; light_yield = 60)
-    # load Ar39 beta spectrum
-    dist_ar39 = load_ar39_spectrum("./ar39.csv")
+function simulate_ar39_log_p0_nominal(
+    optmap::Dict{Symbol,<:StatsBase.Histogram}, 
+    n_events::Int
+    ; 
+    light_yield::Int = 60
+)::Table
 
-    n_channels = length(collect(keys(optmap)))
+    # load Ar39 beta spectrum
+    dist_ar39 = ar39_beta_energy_dist()
+
+    ch_keys = collect(keys(optmap))
 
     # get n_events beta energies
     sampled_energies = rand(dist_ar39, n_events)
     # get expected number of photons
     mean_ar39_photons = rand.(Poisson.(sampled_energies .* light_yield))
 
-    p0_nom = zeros(n_events, n_channels)
+    # initialize dictionary of zeros for each channel
+    p0_nom = Dict(ch => zeros(n_events) for ch in ch_keys)
+
     for event_idx in 1:n_events
         # get valid lar voxel
-        point = sample_valid_point(optmap[1])
+        point = sample_valid_point(optmap)
+
         # get how many scintillation photons for this event
         n = mean_ar39_photons[event_idx]
 
         # store map values at point for all channels
-        for ch_idx in 1:n_channels
-            ξ = optmap[ch_idx][point...]
+        for ch in ch_keys
+            # map probability at selected voxel
+            ξ = optmap[ch].weights[point...]
             # get expected number of detected photons with efficiency 1
-            p0_nom[event_idx, ch_idx] = -n * ξ
+            p0_nom[ch][event_idx] = -n * ξ
         end
     end
 
-    return p0_nom
+    return Table(p0_nom)
 end

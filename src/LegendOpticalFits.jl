@@ -8,10 +8,13 @@ using LegendHDF5IO
 using Pkg.Artifacts
 using Random
 using StatsBase
+using TypedTables
+using DensityInterface
 
 include("utils.jl")
 include("channelmap.jl")
 include("optmap.jl")
 include("models.jl")
+include("likelihood.jl")
 
 end
