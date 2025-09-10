@@ -28,7 +28,6 @@ function sample_valid_point(
     optmap::Dict{Symbol,<:StatsBase.Histogram};
     zlims::Tuple{<:Integer,<:Integer} = (20, 180)
 )::Tuple{Int,Int,Int}
-
     # histogram for the first channel, as all have the same dimension
     h = first(values(optmap))
     xdim, ydim, zdim = size(h.weights)
