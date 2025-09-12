@@ -103,9 +103,9 @@ end
 =#
 
 function simulate_ar39_log_p0_nominal(
-    optmap::Dict{Symbol,<:StatsBase.Histogram}, 
+    optmap::Dict{Symbol,<:StatsBase.Histogram},
     n_events::Int
-    ; 
+    ;
     light_yield::Int = 60
 )::Table
 

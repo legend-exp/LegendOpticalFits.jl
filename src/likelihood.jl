@@ -41,19 +41,26 @@ function make_likelihood(
     x0_random_coin::AbstractMatrix{Bool},
     ;
     multiplicity_thr::Int = 8
-)    
-    return logfuncdensity(params -> begin
+)
+    return logfuncdensity(
+        params -> begin
 
-        λ0_model = expected_no_light_fraction(params.epsilons, log_p0_nominal, x0_random_coin; multiplicity_thr=multiplicity_thr)
+            λ0_model = expected_no_light_fraction(
+                params.epsilons,
+                log_p0_nominal,
+                x0_random_coin;
+                multiplicity_thr = multiplicity_thr
+            )
 
-        logpmf = 0.0
-        @inbounds @simd for i in eachindex(λ0_model)
-            µ = λ0_model[i]
-            σ = max(sqrt(µ * (1 - µ) / N_data), 1e-6)
+            logpmf = 0.0
+            @inbounds @simd for i in eachindex(λ0_model)
+                µ = λ0_model[i]
+                σ = max(sqrt(µ * (1 - µ) / N_data), 1e-6)
 
-            logpmf += logpdf(Normal(μ, σ), λ0_data[i])
+                logpmf += logpdf(Normal(μ, σ), λ0_data[i])
+            end
+
+            return logpmf
         end
-
-        return logpmf
-    end)
+    )
 end
