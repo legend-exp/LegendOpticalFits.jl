@@ -37,7 +37,7 @@ export load_optical_map
 """
     rand_voxel(optmap::OpticalMap; zlims = (20, 180)) -> (x, y, z)
 
-Sample a random valid point from an optical map.
+Sample a random valid voxel (bin indices) from an `OpticalMap`.
 
 The function draws random `(x, y, z)` coordinates within the histogram domain
 of the optical map the histogram of the first channel is used to determine the
@@ -45,34 +45,51 @@ geometry (all channels share the same dimensions).
 
 # Arguments
 - `optmap`: optical map (see [`load_optical_map`](@ref).
-- `zlims`: restrict the sampled z–range. default is `(20, 180)`.
+- `xrange`, `yrange`, `zrange`: optional `(min,max)` in axis units.  
+  If `nothing` (default), the full axis range is used.
+
+# Returns
+Tuple `(ix, iy, iz)` of voxel indices.
 """
 function rand_voxel(
-    optmap::OpticalMap
-    ;
-    zlims::Tuple{<:Integer,<:Integer} = (20, 180)
+    optmap::OpticalMap;
+    xrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing,
+    yrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing,
+    zrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing
 )::Tuple{Int,Int,Int}
-    # histogram for the first channel, as all have the same dimension
-    h = first(Tuple(optmap))
-    xdim, ydim, zdim = size(h.weights)
+    # use the first histogram to get dimensions + edges
+    h = first(values(optmap))
+    ex, ey, ez = h.edges
+    nx, ny, nz = size(h.weights)
 
-    zmin, zmax = zlims
-    if zmax > zdim
-        error("zmax=$(zmax) exceeds available z-dimension (zdim=$(zdim))")
-    end
-
-    for _ in 1:1000
-        x = rand(1:xdim)
-        y = rand(1:ydim)
-        z = rand(zmin:zmax)
-
-        if h.weights[x, y, z] != -1
-            return (x, y, z)
+    # helper: convert axis range → index range
+    function to_index_range(edges, n, r)
+        if r === nothing
+            return 1, n
+        else
+            lo, hi = r
+            imin = searchsortedfirst(edges, lo)
+            imax = searchsortedlast(edges, hi) - 1
+            (1 ≤ imin ≤ imax ≤ n) ||
+                error("range $r out of bounds for axis with $n bins")
+            return imin, imax
         end
     end
 
-    error("could not find a valid voxel with 1000 trials")
-    return nothing
+    ixmin, ixmax = to_index_range(ex, nx, xrange)
+    iymin, iymax = to_index_range(ey, ny, yrange)
+    izmin, izmax = to_index_range(ez, nz, zrange)
+
+    for _ in 1:1000
+        ix = rand(ixmin:ixmax)
+        iy = rand(iymin:iymax)
+        iz = rand(izmin:izmax)
+        if h.weights[ix, iy, iz] != -1
+            return (ix, iy, iz)
+        end
+    end
+
+    return error("could not find a valid voxel within 1000 trials")
 end
 
 export rand_voxel

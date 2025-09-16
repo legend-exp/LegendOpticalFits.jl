@@ -42,8 +42,6 @@ using StatsBase
 end
 
 @testset "log_p0_nominal_ar39" begin
-    Random.seed!(0)
-
     # create a 10x10x10 histogram with random probabilities
     edges = (collect(0.0:1.0:10.0), collect(0.0:1.0:10.0), collect(0.0:1.0:10.0))
     weights = rand(10, 10, 10)
@@ -64,7 +62,7 @@ end
     p0 = log_p0_nominal_ar39(optmap, n_events)
 
     @test p0 isa Table
-    @test Tuple(propertynames(p0)) == channels
+    @test Set(propertynames(p0)) == Set(channels)
     @test all(length(getproperty(p0, ch)) == n_events for ch in channels)
     @test all(all(getproperty(p0, ch) .<= 0) for ch in channels)
     @test all(all(isfinite.(getproperty(p0, ch))) for ch in channels)

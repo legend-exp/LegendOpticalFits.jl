@@ -121,6 +121,8 @@ events. This can be used to compute inputs for [`λ0_model`](@ref).
 - `optmap`: liquid argon optical map as loaded by [`load_optical_map`](@ref).
 - `n_events`: number of Ar-39 decays to simulate.
 - `light_yield`: liquid argon scintillation yield in units of photons / keV.
+- `rand_voxel_kwargs...`: optional keyword arguments forwarded to
+  [`rand_voxel`](@ref).
 
 # Returns
 A table of `log(p0)` for each channel (columns) and event (rows).
@@ -129,7 +131,8 @@ function log_p0_nominal_ar39(
     optmap::OpticalMap,
     n_events::Integer
     ;
-    light_yield::Integer = 60
+    light_yield::Integer = 60,
+    rand_voxel_kwargs...
 )::Table
 
     # load Ar39 beta spectrum
@@ -147,7 +150,7 @@ function log_p0_nominal_ar39(
 
     for event_idx in 1:n_events
         # get valid lar voxel
-        point = rand_voxel(optmap)
+        point = rand_voxel(optmap, rand_voxel_kwargs...)
 
         # get how many scintillation photons for this event
         n = mean_ar39_photons[event_idx]
