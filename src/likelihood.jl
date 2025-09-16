@@ -26,6 +26,8 @@ The likelihood is the sum of log-probabilities across all channels.
 - `x0_random_coin`: observed no-light indicators from random coincidence events.
 - `multiplicity_thr`: discard events with multiplicity below this threshold
   (optional, defaults to 0).
+- `smear_factor`: the width of the likelihood gaussian terms is increased by a
+  factor `smear_factor * mean`.
 
 # Returns
 - A `DensityFunction` object representing the log-likelihood. It can be called
@@ -36,7 +38,8 @@ function make_λ0_likelihood(
     log_p0_nominal::Table,
     x0_random_coin::Table,
     ;
-    multiplicity_thr::Int = 0
+    multiplicity_thr::Int = 0,
+    smear_factor::Real = 0
 )
     N_data = length(x0)
     data = λ0_data(x0)
@@ -54,7 +57,7 @@ function make_λ0_likelihood(
             @inbounds @simd for i in eachindex(model)
                 # Binomal statistics
                 µ = model[i]
-                σ = sqrt(µ * (1 - µ) / N_data)
+                σ = sqrt(µ * (1 - µ) / N_data) + smear_factor * μ
 
                 logpmf += logpdf(Normal(μ, σ), data[i])
             end
