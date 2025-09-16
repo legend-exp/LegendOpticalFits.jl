@@ -155,7 +155,7 @@ function log_p0_nominal_ar39(
         # store map values at point for all channels
         for ch in ch_keys
             # map probability at selected voxel
-            ξ = optmap[ch].weights[point...]
+            ξ = getproperty(optmap, ch).weights[point...]
             # get expected number of detected photons with efficiency 1
             p0_nom[ch][event_idx] = -n * ξ
         end

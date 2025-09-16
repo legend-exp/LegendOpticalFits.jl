@@ -1,10 +1,10 @@
 """
-    OpticalMap = Dict{Symbol, Histogram{<:AbstractFloat, 3}}
+    OpticalMap ≡ NamedTuple of 3D histograms keyed by channel Symbol
 
 Handy type alias for LEGEND optical maps, i.e. three-dimensional histograms for
-each SiPM channel.
+each SiPM channel. The field names are the channel symbols (e.g. :S030).
 """
-const OpticalMap = Dict{Symbol,Histogram{<:AbstractFloat,3}}
+const OpticalMap{names,T} = NamedTuple{names,T} where {names,T<:Tuple{Vararg{Histogram{<:AbstractFloat,3}}}}
 export OpticalMap
 
 """
@@ -24,7 +24,10 @@ function load_optical_map(filename::AbstractString, runsel::RunSelLike)::Optical
     lh5open(filename) do file
         names = filter(s -> occursin(r"_\d{7}$", s), keys(file))
         rawids = [parse(Int, match(r"\d+", name).match) for name in names]
-        return Dict(_detname(id) => _read_histogram(file, "_$id/p_det") for id in rawids)
+        detnames = map(_detname, rawids)
+        order = sortperm(string.(detnames))
+        kvs = (detnames[i] => _read_histogram(file, "_$(rawids[i])/p_det") for i in order)
+        return (; kvs...)
     end
 end
 
@@ -50,7 +53,7 @@ function rand_voxel(
     zlims::Tuple{<:Integer,<:Integer} = (20, 180)
 )::Tuple{Int,Int,Int}
     # histogram for the first channel, as all have the same dimension
-    h = first(values(optmap))
+    h = first(Tuple(optmap))
     xdim, ydim, zdim = size(h.weights)
 
     zmin, zmax = zlims
