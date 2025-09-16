@@ -8,3 +8,4 @@ Manifest.toml
 Manifest-v*.toml
 LocalPreferences.toml
 _data
+.aider*

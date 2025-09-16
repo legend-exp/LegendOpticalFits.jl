@@ -25,27 +25,27 @@ All input data is keyed by detector name (a symbol)
   structures.
 """
 function λ0_model(
-    scaling_factors::Dict{<:Union{Symbol,AbstractString},<:AbstractFloat},
+    scaling_factors::NamedTuple,
     log_p0_nominal::Table,
     x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 0
-)::Dict{<:Union{Symbol,AbstractString},<:AbstractFloat}
-    # make sure order is consistent
-    ϵk = sort(collect(keys(scaling_factors)))
+)::NamedTuple
+    # make sure order is consistent with provided scaling_factors
+    ϵk = propertynames(scaling_factors)
     log_p0 = Table(; (k => getproperty(log_p0_nominal, k) for k in ϵk)...)
     x0 = Table(; (k => getproperty(x0_random_coin, k) for k in ϵk)...)
 
     # call low-level routine
     λ0 = λ0_model(
-        [scaling_factors[k] for k in ϵk],
+        [getfield(scaling_factors, k) for k in ϵk],
         Tables.matrix(log_p0),
         Tables.matrix(x0),
         multiplicity_thr = multiplicity_thr
     )
 
-    # re-label
-    return Dict(k => λ0[i] for (i, k) in enumerate(ϵk))
+    # re-label as a NamedTuple keyed by channel symbols
+    return NamedTuple{ϵk}(Tuple(λ0))
 end
 
 """
