@@ -88,10 +88,17 @@ end
 CHANNELMAPS = Dict(
     :p13 => Dict(
         :r001 => _chmap_p13_r001,
-        :r002 => _chmap_p13_r002
+        :r002 => _chmap_p13_r002,
+        :r003 => _chmap_p13_r002,
+        :r004 => _chmap_p13_r002,
+        :r005 => _chmap_p13_r002,
+        :r006 => _chmap_p13_r002,
+        :r008 => _chmap_p13_r002,
+        :r009 => _chmap_p13_r002
     )
 )
 
+# NOTE: don't use this in hot loops, it's slow!
 function rawid2detname(chmap::AbstractDict{Symbol,<:NamedTuple}, rawid::Integer)
     for (k, v) in chmap
         v.rawid == rawid && return k

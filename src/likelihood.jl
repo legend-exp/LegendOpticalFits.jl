@@ -1,20 +1,21 @@
 """
-Construct the likelihood function for fitting no-light probabilities.
+    make_likelihood_λ0()
 
-We model the fraction of events with no detected light (`λ₀`) as follows:
+Construct the likelihood of no-light probabilities.
 
-- For each channel, the expected no-light probability `λ₀_model` comes from
-  the simulation (`log_p0_nominal`) combined with random coincidences (`x0_random_coin`)
-  and scaled by per-channel scaling factors (`params.epsilons`).
+We model the fraction of events with no detected light (`λ0`) as follows:
 
-- The observed no-light fraction in data is
-  `λ₀_data = N₀ / N_data`, where `N₀` is the number of no-light events
-  passing a multiplicity threshold.
+- For each channel, the expected no-light probability `λ0_model` comes from
+  the simulation (`log_p0_nominal`) combined with random coincidences
+  (`x0_random_coin`) and scaled by per-channel scaling factors
+  (`params.epsilons`, the parameters of the model).
 
-- Since `N_data` is large, the binomial distribution
-  `N₀ ~ Binomial(N_data, λ₀_model)`
-  can be approximated by a normal distribution:
-  λ₀_data ~ Normal(μ = λ₀_model, σ² = λ₀_model (1 - λ₀_model) / N_data).
+- The observed no-light fraction in data is `λ0_data = N0 / N_data`, where `N0`
+  is the number of no-light events passing a multiplicity threshold.
+
+- Since `N_data` is large, the binomial distribution `N0 ~ Binomial(N_data,
+  λ0_model)` can be approximated by a normal distribution: `λ0_data ~ Normal(μ =
+  λ0_model, σ² = λ0_model (1 - λ0_model) / N_data)`.
 
 The likelihood is the sum of log-probabilities across all channels.
 
@@ -29,23 +30,21 @@ The likelihood is the sum of log-probabilities across all channels.
   (optional, defaults to 0).
 
 # Returns
-- A `DensityFunction` (from BAT.jl) representing the log-likelihood.
-  It can be called with a parameter set `params` that must include
-  `params.epsilons`.
-  
+- A `DensityFunction` object representing the log-likelihood.  It can be called
+  with a parameter set `params` that must include `params.epsilons`
 """
-function make_likelihood(
+function make_λ0_likelihood(
     N_data::Int,
-    λ0_data::AbstractMatrix{<:Float64},
-    log_p0_nominal::AbstractMatrix{<:Float64},
-    x0_random_coin::AbstractMatrix{Bool},
+    λ0_data::Table,
+    log_p0_nominal::Table,
+    x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 8
 )
     return logfuncdensity(
         params -> begin
 
-            λ0_model = expected_no_light_fraction(
+            λ0_model = expected_λ0(
                 params.epsilons,
                 log_p0_nominal,
                 x0_random_coin;
@@ -54,8 +53,9 @@ function make_likelihood(
 
             logpmf = 0.0
             @inbounds @simd for i in eachindex(λ0_model)
+                # Binomal statistics
                 µ = λ0_model[i]
-                σ = max(sqrt(µ * (1 - µ) / N_data), 1e-6)
+                σ = sqrt(µ * (1 - µ) / N_data)
 
                 logpmf += logpdf(Normal(μ, σ), λ0_data[i])
             end

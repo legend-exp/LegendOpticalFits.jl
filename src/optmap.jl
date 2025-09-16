@@ -1,16 +1,23 @@
 """
-    load_optical_map(filename, runsel) -> Dict{String, Histogram}
+    OpticalMap = Dict{Symbol, Histogram{<:AbstractFloat, 3}}
 
-Load LEGEND-200 optical maps from file.
+Handy type alias for LEGEND optical maps, i.e. three-dimensional histograms for
+each SiPM channel.
+"""
+const OpticalMap = Dict{Symbol,Histogram{<:AbstractFloat,3}}
+export OpticalMap
 
-Returns a mapping of detector names to histograms for each detector.
+"""
+    load_optical_map(filename, runsel) -> OpticalMap
+
+Load a LEGEND-200 optical map from file.
 
 # Examples
 ```julia
-load_optical_maps("./optmaps.lh5", (:p13, :r001))
+load_optical_map("./optmap.lh5", (:p13, :r001))
 ```
 """
-function load_optical_maps(filename::AbstractString, runsel::RunSelLike)::Dict{Symbol,StatsBase.Histogram}
+function load_optical_map(filename::AbstractString, runsel::RunSelLike)::OpticalMap
     period, run = runsel
     _detname = id -> rawid2detname(CHANNELMAPS[period][run], id)
 
@@ -21,11 +28,25 @@ function load_optical_maps(filename::AbstractString, runsel::RunSelLike)::Dict{S
     end
 end
 
-export load_optical_maps
+export load_optical_map
 
 
-function sample_valid_point(
-    optmap::Dict{Symbol,<:StatsBase.Histogram};
+"""
+    rand_voxel(optmap::OpticalMap; zlims = (20, 180)) -> (x, y, z)
+
+Sample a random valid point from an optical map.
+
+The function draws random `(x, y, z)` coordinates within the histogram domain
+of the optical map the histogram of the first channel is used to determine the
+geometry (all channels share the same dimensions).
+
+# Arguments
+- `optmap`: optical map (see [`load_optical_map`](@ref).
+- `zlims`: restrict the sampled z–range. default is `(20, 180)`.
+"""
+function rand_voxel(
+    optmap::OpticalMap
+    ;
     zlims::Tuple{<:Integer,<:Integer} = (20, 180)
 )::Tuple{Int,Int,Int}
     # histogram for the first channel, as all have the same dimension
@@ -37,21 +58,18 @@ function sample_valid_point(
         error("zmax=$(zmax) exceeds available z-dimension (zdim=$(zdim))")
     end
 
-    trials = 0
-    while true
-        trials += 1
+    for _ in 1:1000
         x = rand(1:xdim)
         y = rand(1:ydim)
         z = rand(zmin:zmax)
-        hprob = h.weights[x, y, z]
-        if hprob != -1
+
+        if h.weights[x, y, z] != -1
             return (x, y, z)
         end
-        # add a break condition to avoid infinite loop
-        if trials > 100
-            error("too many trials with invalid hprob (-1)")
-        end
     end
+
+    error("could not find a valid voxel with 1000 trials")
+    return nothing
 end
 
-export sample_valid_point
+export rand_voxel
