@@ -46,6 +46,7 @@ function make_λ0_likelihood(
 
     return DensityInterface.logfuncdensity(
         params -> begin
+            # NOTE: this could be sped up a little more by using the low-level routine
             model = λ0_model(
                 params,
                 log_p0_nominal,
