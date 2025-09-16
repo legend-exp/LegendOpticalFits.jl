@@ -30,7 +30,7 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
     x0_cols = nothing
 
     lh5open(filename) do f
-        # only interested in SiPM data
+        # only interested in SiPM datai disagree, i think it's useful. anyways these are mostly technical limitations, so we have to think about what 
         events = f["evt"][1:max_events].spms
 
         # we want to check if there is light for each event and channel
@@ -60,3 +60,35 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
 end
 
 export x0_data
+
+"""
+    λ0_data(x0; multiplicity_thr=0) -> NamedTuple
+
+Compute per–channel trigger fractions from a boolean `Table` of events.
+
+# Arguments
+- `x0`: a `Table` where each column corresponds to a channel and each row
+  to an event; entries are `Bool` indicating whether the channel triggered.
+- `multiplicity_thr`: minimum number of triggered channels per event required
+  for the event to be considered. Defaults to `0`.
+
+# Returns
+A `NamedTuple` with one field per channel containing the fraction of
+selected events in which that channel triggered.
+"""
+function λ0_data(x0::Table; multiplicity_thr::Int = 0)::NamedTuple
+    # compute multiplicity per row
+    mult = zeros(Int, length(x0))
+    for col in columns(x0)
+        mult .+= col
+    end
+
+    keep = mult .>= multiplicity_thr
+    nsel = count(keep)
+    nsel == 0 && error("no events pass multiplicity_thr=$multiplicity_thr")
+
+    # build NamedTuple of fractions
+    return NamedTuple{columnnames(x0)}(map(col -> count(col[keep]) / nsel, columns(x0)))
+end
+
+export λ0_data
