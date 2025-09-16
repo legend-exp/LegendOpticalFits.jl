@@ -1,58 +1,95 @@
 """
-    load_optical_map(filename, runsel) -> Dict{String, Histogram}
+    OpticalMap ≡ NamedTuple of 3D histograms keyed by channel Symbol
 
-Load LEGEND-200 optical maps from file.
+Handy type alias for LEGEND optical maps, i.e. three-dimensional histograms for
+each SiPM channel. The field names are the channel symbols (e.g. :S030).
+"""
+const OpticalMap{names,T} = NamedTuple{names,T} where {names,T<:Tuple{Vararg{Histogram{<:AbstractFloat,3}}}}
+export OpticalMap
 
-Returns a mapping of detector names to histograms for each detector.
+"""
+    load_optical_map(filename, runsel) -> OpticalMap
+
+Load a LEGEND-200 optical map from file.
 
 # Examples
 ```julia
-load_optical_maps("./optmaps.lh5", (:p13, :r001))
+load_optical_map("./optmap.lh5", (:p13, :r001))
 ```
 """
-function load_optical_maps(filename::AbstractString, runsel::RunSelLike)::Dict{Symbol,StatsBase.Histogram}
+function load_optical_map(filename::AbstractString, runsel::RunSelLike)::OpticalMap
     period, run = runsel
     _detname = id -> rawid2detname(CHANNELMAPS[period][run], id)
 
     lh5open(filename) do file
         names = filter(s -> occursin(r"_\d{7}$", s), keys(file))
         rawids = [parse(Int, match(r"\d+", name).match) for name in names]
-        return Dict(_detname(id) => _read_histogram(file, "_$id/p_det") for id in rawids)
+        detnames = map(_detname, rawids)
+        order = sortperm(string.(detnames))
+        kvs = (detnames[i] => _read_histogram(file, "_$(rawids[i])/p_det") for i in order)
+        return (; kvs...)
     end
 end
 
-export load_optical_maps
+export load_optical_map
 
 
-function sample_valid_point(
-    optmap::Dict{Symbol,<:StatsBase.Histogram};
-    zlims::Tuple{<:Integer,<:Integer} = (20, 180)
+"""
+    rand_voxel(optmap::OpticalMap; zlims = (20, 180)) -> (x, y, z)
+
+Sample a random valid voxel (bin indices) from an `OpticalMap`.
+
+The function draws random `(x, y, z)` coordinates within the histogram domain
+of the optical map the histogram of the first channel is used to determine the
+geometry (all channels share the same dimensions).
+
+# Arguments
+- `optmap`: optical map (see [`load_optical_map`](@ref).
+- `xrange`, `yrange`, `zrange`: optional `(min,max)` in axis units.  
+  If `nothing` (default), the full axis range is used.
+
+# Returns
+Tuple `(ix, iy, iz)` of voxel indices.
+"""
+function rand_voxel(
+    optmap::OpticalMap;
+    xrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing,
+    yrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing,
+    zrange::Union{Nothing,Tuple{<:Real,<:Real}} = nothing
 )::Tuple{Int,Int,Int}
-
-    # histogram for the first channel, as all have the same dimension
+    # use the first histogram to get dimensions + edges
     h = first(values(optmap))
-    xdim, ydim, zdim = size(h.weights)
+    ex, ey, ez = h.edges
+    nx, ny, nz = size(h.weights)
 
-    zmin, zmax = zlims
-    if zmax > zdim
-        error("zmax=$(zmax) exceeds available z-dimension (zdim=$(zdim))")
-    end
-
-    trials = 0
-    while true
-        trials += 1
-        x = rand(1:xdim)
-        y = rand(1:ydim)
-        z = rand(zmin:zmax)
-        hprob = h.weights[x, y, z]
-        if hprob != -1
-            return (x, y, z)
-        end
-        # add a break condition to avoid infinite loop
-        if trials > 100
-            error("too many trials with invalid hprob (-1)")
+    # helper: convert axis range → index range
+    function to_index_range(edges, n, r)
+        if r === nothing
+            return 1, n
+        else
+            lo, hi = r
+            imin = searchsortedfirst(edges, lo)
+            imax = searchsortedlast(edges, hi) - 1
+            (1 ≤ imin ≤ imax ≤ n) ||
+                error("range $r out of bounds for axis with $n bins")
+            return imin, imax
         end
     end
+
+    ixmin, ixmax = to_index_range(ex, nx, xrange)
+    iymin, iymax = to_index_range(ey, ny, yrange)
+    izmin, izmax = to_index_range(ez, nz, zrange)
+
+    for _ in 1:1000
+        ix = rand(ixmin:ixmax)
+        iy = rand(iymin:iymax)
+        iz = rand(izmin:izmax)
+        if h.weights[ix, iy, iz] != -1
+            return (ix, iy, iz)
+        end
+    end
+
+    return error("could not find a valid voxel within 1000 trials")
 end
 
-export sample_valid_point
+export rand_voxel
