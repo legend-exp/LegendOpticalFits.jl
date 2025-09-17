@@ -104,6 +104,40 @@ end
 export λ0_model
 
 """
+    λ0_model_bulk_ops()
+
+Version with bulk array operations for the GPU.
+"""
+function λ0_model_bulk_ops(
+    efficiencies::AbstractVector{<:AbstractFloat},
+    log_p0_nominal::AbstractMatrix{<:AbstractFloat},
+    x0_random_coin::AbstractMatrix{Bool},
+    ;
+    multiplicity_thr::Int = 0
+)
+    n_events, n_channels = size(log_p0_nominal)
+
+    # avoid numerical issues
+    ϵ = clamp!(copy(efficiencies), 1e-10, 1 - 1e-10)
+
+    # calculate the probability to see no light
+    # NOTE: exp is expensive, do it here
+    p0 = exp.(log_p0_nominal .* ϵ')
+
+    # draw bernoulli distributed numbers and fold in random coincidences
+    drawn = (rand(n_events, n_channels) .< p0) .&& x0_random_coin
+
+    # compute the event multiplicity
+    multiplicity = vec(n_channels .- sum(drawn, dims = 2))
+
+    # and select above a threshold
+    mask = multiplicity .>= multiplicity_thr
+
+    # calculate expectation for fraction of events with no light in each channel
+    return sum(drawn[mask, :], dims = 1) / count(mask)
+end
+
+"""
     log_p0_nominal_ar39(optical_map, n_events; ...)
 
 Logarithm of no-light-probability for simulated Ar-39 events.
@@ -164,33 +198,3 @@ function log_p0_nominal_ar39(
 end
 
 export log_p0_nominal_ar39
-
-
-#= version with bulk / array programming operations, FYI
-function _version_bulk_ops(
-    efficiencies::AbstractVector{<:Float64}, 
-    log_p0_nom::Matrix{Float64}, 
-    multiplicity_thr::Int,
-)
-    n_events, n_channels = size(log_p0_nom)
-
-    # avoid numerical issues
-    ϵ = clamp!(copy(efficiencies), 1e-10, 1 - 1e-10)
-
-    # calculate the probability to see no light
-    # NOTE: exp is expensive, do it here
-    p0 = exp.(log_p0_nom .* ϵ')
-
-    # draw bernoulli distributed numbers
-    drawn = rand(n_events, n_channels) .< p0
-
-    # compute the event multiplicity
-    multiplicity = vec(n_channels .- sum(drawn, dims=2))
-
-    # and select above a threshold
-    mask = multiplicity .>= multiplicity_thr
-
-    # calculate expectation for fraction of events with no light in each channel
-    return sum(drawn[mask, :], dims=1) / count(mask)
-end
-=#

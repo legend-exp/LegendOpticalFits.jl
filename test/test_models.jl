@@ -8,7 +8,7 @@ using StatsBase
 
 @testset "forward models" begin
     @testset "λ0 models" begin
-        n_events = 1000
+        n_events = 100_000
         n_channels = 10
 
         # low level
@@ -24,6 +24,15 @@ using StatsBase
 
         @test length(λ0) == n_channels
         @test all(0 .<= λ0 .<= 1)
+
+        # bulk ops
+        λ0_bulk = LegendOpticalFits.λ0_model_bulk_ops(
+            scaling_factors,
+            log_p0_nominal,
+            x0_random_coin
+        )
+
+        @test λ0_bulk == λ0
 
         # high-level
         scaling_factors = (; (Symbol("S$s") => rand() for s in 1:10)...)
