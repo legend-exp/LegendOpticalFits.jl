@@ -30,7 +30,7 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
     x0_cols = nothing
 
     lh5open(filename) do f
-        # only interested in SiPM datai disagree, i think it's useful. anyways these are mostly technical limitations, so we have to think about what 
+        # only interested in SiPM data
         events = f["evt"][1:max_events].spms
 
         # we want to check if there is light for each event and channel

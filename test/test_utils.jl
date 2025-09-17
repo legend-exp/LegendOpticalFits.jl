@@ -1,6 +1,8 @@
 using Test
 using LegendOpticalFits
 
+using TypedTables
+
 @testset "utilities" begin
     @testset "ar39 beta energy distribution" begin
         dist = ar39_beta_energy_dist()
@@ -11,5 +13,17 @@ using LegendOpticalFits
         @test all(isfinite, samples)
         @test minimum(samples) ≥ minimum([c.a for c in dist.components])
         @test maximum(samples) ≤ maximum([c.b for c in dist.components])
+    end
+
+    @testset "matrix <-> table" begin
+        table = Table(; a = [1, 2, 3], b = [4, 5, 6])
+        matrix = [[1, 2, 3] [4, 5, 6]]
+        colnames = (:a, :b)
+
+        @test LegendOpticalFits._to_matrix(table) == (matrix, colnames)
+        @test LegendOpticalFits._to_table(matrix, colnames) == table
+
+        order = (:b, :a)
+        @test LegendOpticalFits._to_matrix(table, order = order) == ([[4, 5, 6] [1, 2, 3]], order)
     end
 end

@@ -32,17 +32,13 @@ function λ0_model(
     multiplicity_thr::Int = 0
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
-    ϵk = propertynames(scaling_factors)
-    log_p0 = Table(; (k => getproperty(log_p0_nominal, k) for k in ϵk)...)
-    x0 = Table(; (k => getproperty(x0_random_coin, k) for k in ϵk)...)
+    ϵk = keys(scaling_factors);
+    ϵv = collect(values(scaling_factors))
+    log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
+    x0, _ = _to_matrix(x0_random_coin, order = ϵk)
 
     # call low-level routine
-    λ0 = λ0_model(
-        [getfield(scaling_factors, k) for k in ϵk],
-        Tables.matrix(log_p0),
-        Tables.matrix(x0),
-        multiplicity_thr = multiplicity_thr
-    )
+    λ0 = λ0_model(ϵv, log_p0, x0, multiplicity_thr = multiplicity_thr)
 
     # re-label as a NamedTuple keyed by channel symbols
     return NamedTuple{ϵk}(Tuple(λ0))
