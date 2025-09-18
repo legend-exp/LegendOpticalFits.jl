@@ -104,9 +104,10 @@ end
 export λ0_model
 
 """
-    λ0_model_bulk_ops()
+    λ0_model_bulk_ops(...)
 
-Version with bulk array operations for the GPU.
+Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
+To be used as a CUDA kernel.
 """
 function λ0_model_bulk_ops(
     efficiencies::AbstractVector{<:AbstractFloat},
@@ -134,7 +135,7 @@ function λ0_model_bulk_ops(
     mask = multiplicity .>= multiplicity_thr
 
     # calculate expectation for fraction of events with no light in each channel
-    return sum(drawn[mask, :], dims = 1) / count(mask)
+    return vec(sum(drawn[mask, :], dims = 1)) / count(mask)
 end
 
 """
@@ -198,3 +199,31 @@ function log_p0_nominal_ar39(
 end
 
 export log_p0_nominal_ar39
+
+"""
+    ar39_beta_energy_dist() -> MixtureModel{Uniform}
+
+Energy distribution of the beta particle emitted in an Ar-39 nuclear decay.
+
+Return a continuous probability distribution for the beta decay spectrum of
+Ar-39. The distribution is constructed from tabulated values from the IAEA
+BetaShape database, downloadable at this
+[link](https://www-nds.iaea.org/relnsd/v1/data?fields=bin_beta&nuclides=39ar&rad_types=bm).
+"""
+function ar39_beta_energy_dist()
+    csvpath = joinpath(@__DIR__, "..", "data", "ar39-beta-decay-data.csv")
+
+    tbl   = CSV.File(csvpath)
+    edges = collect(tbl.bin_en)
+    dens  = collect(tbl.dn_de)
+
+    d = diff(edges)
+    ΔE = vcat(d, d[end])
+    w = dens .* ΔE
+    w ./= sum(w)
+
+    comps = [Uniform(edges[i], edges[i] + ΔE[i]) for i in eachindex(edges)]
+    return MixtureModel(comps, w)
+end
+
+export ar39_beta_energy_dist

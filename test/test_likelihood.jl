@@ -9,20 +9,20 @@ using DensityInterface
 
 @testset "likelihoods" begin
     @testset "λ0" begin
-        n_events = 1000
-        n_channels = 10
+        n_events = 100_000
+        runsel = (:p13, :r001)
 
-        x0 = Table(; (Symbol("S$s") => rand(Bool, n_events) for s in 1:10)...)
-        log_p0_nominal = Table(; (Symbol("S$s") => log.(rand(n_events)) for s in 1:10)...)
-        x0_random_coin = Table(; (Symbol("S$s") => rand(Bool, n_events) for s in 1:10)...)
+        optmap = mock_optmap(runsel)
+        x0, x0_rc, log_p0 = mock_ar39_data(optmap, n_events, eff = 0.5)
 
-        logf = make_λ0_likelihood(
+        logl = make_λ0_likelihood(
             x0,
-            log_p0_nominal,
-            x0_random_coin
+            log_p0,
+            x0_rc,
+            multiplicity_thr = 6
         )
 
-        scaling_factors = (; (Symbol("S$s") => rand() for s in 1:10)...)
-        @test logdensityof(logf, scaling_factors) isa Real
+        eff = (; (k => 0.5 for k in keys(optmap))...)
+        @test logdensityof(logl, eff) isa Real
     end
 end

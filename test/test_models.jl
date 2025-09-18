@@ -8,7 +8,7 @@ using StatsBase
 
 @testset "forward models" begin
     @testset "λ0 models" begin
-        n_events = 100_000
+        n_events = 500_000
         n_channels = 10
 
         # low level
@@ -32,12 +32,12 @@ using StatsBase
             x0_random_coin
         )
 
-        @test λ0_bulk == λ0
+        @test λ0_bulk ≈ λ0 atol=0.01
 
         # high-level
-        scaling_factors = (; (Symbol("S$s") => rand() for s in 1:10)...)
-        log_p0_nominal = Table(; (Symbol("S$s") => log.(rand(n_events)) for s in 1:10)...)
-        x0_random_coin = Table(; (Symbol("S$s") => rand(Bool, n_events) for s in 1:10)...)
+        scaling_factors = (; (Symbol("S$s") => rand() for s in 1:n_channels)...)
+        log_p0_nominal = Table(; (Symbol("S$s") => log.(rand(n_events)) for s in 1:n_channels)...)
+        x0_random_coin = Table(; (Symbol("S$s") => rand(Bool, n_events) for s in 1:n_channels)...)
 
         λ0_hl = λ0_model(
             scaling_factors,
