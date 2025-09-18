@@ -3,7 +3,7 @@
 
 Load `x0` values from LEGEND-200 SiPM data.
 
-For each event and channel, this function records whether a photon
+For each event and channel, this function records whether no photon
 above the high photoelectron threshold was detected within the
 `[-1, 5] μs` coincidence window. The output is a `Table` where each column
 corresponds to a SiPM channel and each row to an event.
@@ -30,11 +30,11 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
     x0_cols = nothing
 
     lh5open(filename) do f
-        # only interested in SiPM datai disagree, i think it's useful. anyways these are mostly technical limitations, so we have to think about what 
+        # only interested in SiPM data
         events = f["evt"][1:max_events].spms
 
         # we want to check if there is light for each event and channel
-        x0_cols = Dict(sipm => falses(first(size(events))) for sipm in keys(chmap))
+        x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap))
 
         # map rawid directly to the column vector
         rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap)
@@ -50,7 +50,7 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
             for j in eachindex(rawid)
                 # check if there is any photon
                 if any(mask[j])
-                    rawid2col[rawid[j]][i] = true
+                    rawid2col[rawid[j]][i] = false
                 end
             end
         end
@@ -80,7 +80,7 @@ function λ0_data(x0::Table; multiplicity_thr::Int = 0)::NamedTuple
     # compute multiplicity per row
     mult = zeros(Int, length(x0))
     for col in columns(x0)
-        mult .+= col
+        mult .+= .!col
     end
 
     keep = mult .>= multiplicity_thr

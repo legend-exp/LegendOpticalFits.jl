@@ -18,5 +18,7 @@ include("data.jl")
 include("optmap.jl")
 include("models.jl")
 include("likelihood.jl")
+include("priors.jl")
+include("inference.jl")
 
 end

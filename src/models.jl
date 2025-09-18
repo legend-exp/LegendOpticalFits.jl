@@ -32,17 +32,13 @@ function λ0_model(
     multiplicity_thr::Int = 0
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
-    ϵk = propertynames(scaling_factors)
-    log_p0 = Table(; (k => getproperty(log_p0_nominal, k) for k in ϵk)...)
-    x0 = Table(; (k => getproperty(x0_random_coin, k) for k in ϵk)...)
+    ϵk = keys(scaling_factors);
+    ϵv = collect(values(scaling_factors))
+    log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
+    x0, _ = _to_matrix(x0_random_coin, order = ϵk)
 
     # call low-level routine
-    λ0 = λ0_model(
-        [getfield(scaling_factors, k) for k in ϵk],
-        Tables.matrix(log_p0),
-        Tables.matrix(x0),
-        multiplicity_thr = multiplicity_thr
-    )
+    λ0 = λ0_model(ϵv, log_p0, x0, multiplicity_thr = multiplicity_thr)
 
     # re-label as a NamedTuple keyed by channel symbols
     return NamedTuple{ϵk}(Tuple(λ0))
@@ -108,6 +104,41 @@ end
 export λ0_model
 
 """
+    λ0_model_bulk_ops(...)
+
+Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
+To be used as a CUDA kernel.
+"""
+function λ0_model_bulk_ops(
+    efficiencies::AbstractVector{<:AbstractFloat},
+    log_p0_nominal::AbstractMatrix{<:AbstractFloat},
+    x0_random_coin::AbstractMatrix{Bool},
+    ;
+    multiplicity_thr::Int = 0
+)
+    n_events, n_channels = size(log_p0_nominal)
+
+    # avoid numerical issues
+    ϵ = clamp!(copy(efficiencies), 1e-10, 1 - 1e-10)
+
+    # calculate the probability to see no light
+    # NOTE: exp is expensive, do it here
+    p0 = exp.(log_p0_nominal .* ϵ')
+
+    # draw bernoulli distributed numbers and fold in random coincidences
+    drawn = (rand(n_events, n_channels) .< p0) .&& x0_random_coin
+
+    # compute the event multiplicity
+    multiplicity = vec(n_channels .- sum(drawn, dims = 2))
+
+    # and select above a threshold
+    mask = multiplicity .>= multiplicity_thr
+
+    # calculate expectation for fraction of events with no light in each channel
+    return vec(sum(drawn[mask, :], dims = 1)) / count(mask)
+end
+
+"""
     log_p0_nominal_ar39(optical_map, n_events; ...)
 
 Logarithm of no-light-probability for simulated Ar-39 events.
@@ -169,32 +200,30 @@ end
 
 export log_p0_nominal_ar39
 
+"""
+    ar39_beta_energy_dist() -> MixtureModel{Uniform}
 
-#= version with bulk / array programming operations, FYI
-function _version_bulk_ops(
-    efficiencies::AbstractVector{<:Float64}, 
-    log_p0_nom::Matrix{Float64}, 
-    multiplicity_thr::Int,
-)
-    n_events, n_channels = size(log_p0_nom)
+Energy distribution of the beta particle emitted in an Ar-39 nuclear decay.
 
-    # avoid numerical issues
-    ϵ = clamp!(copy(efficiencies), 1e-10, 1 - 1e-10)
+Return a continuous probability distribution for the beta decay spectrum of
+Ar-39. The distribution is constructed from tabulated values from the IAEA
+BetaShape database, downloadable at this
+[link](https://www-nds.iaea.org/relnsd/v1/data?fields=bin_beta&nuclides=39ar&rad_types=bm).
+"""
+function ar39_beta_energy_dist()
+    csvpath = joinpath(@__DIR__, "..", "data", "ar39-beta-decay-data.csv")
 
-    # calculate the probability to see no light
-    # NOTE: exp is expensive, do it here
-    p0 = exp.(log_p0_nom .* ϵ')
+    tbl   = CSV.File(csvpath)
+    edges = collect(tbl.bin_en)
+    dens  = collect(tbl.dn_de)
 
-    # draw bernoulli distributed numbers
-    drawn = rand(n_events, n_channels) .< p0
+    d = diff(edges)
+    ΔE = vcat(d, d[end])
+    w = dens .* ΔE
+    w ./= sum(w)
 
-    # compute the event multiplicity
-    multiplicity = vec(n_channels .- sum(drawn, dims=2))
-
-    # and select above a threshold
-    mask = multiplicity .>= multiplicity_thr
-
-    # calculate expectation for fraction of events with no light in each channel
-    return sum(drawn[mask, :], dims=1) / count(mask)
+    comps = [Uniform(edges[i], edges[i] + ΔE[i]) for i in eachindex(edges)]
+    return MixtureModel(comps, w)
 end
-=#
+
+export ar39_beta_energy_dist
