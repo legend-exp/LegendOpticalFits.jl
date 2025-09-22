@@ -1,5 +1,5 @@
 """
-    λ0_model(scaling_factors, log_p0_nominal, x0_random_coin[, multiplicity_thr])
+    λ0_model(efficiencies, log_p0_nominal, x0_random_coin[, multiplicity_thr])
 
 Expected fraction of events in which a SiPM channel sees no light.
 
@@ -12,7 +12,7 @@ lower multiplicity are discarded.
 # Arguments
 All input data is keyed by detector name (a symbol)
 
-- `scaling_factors`: scaling factors for each SiPM channel.
+- `efficiencies`: scaling factors for each SiPM channel.
 - `log_p0_nominal`: logarithm of the probability to see no light for each
   (event, channel), typically from simulations.
 - `x0_random_coin`: presence of light from random coincidences for each
@@ -25,15 +25,15 @@ All input data is keyed by detector name (a symbol)
   structures.
 """
 function λ0_model(
-    scaling_factors::NamedTuple,
+    efficiencies::NamedTuple,
     log_p0_nominal::Table,
     x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 0
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
-    ϵk = keys(scaling_factors);
-    ϵv = collect(values(scaling_factors))
+    ϵk = keys(efficiencies);
+    ϵv = collect(values(efficiencies))
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
     x0, _ = _to_matrix(x0_random_coin, order = ϵk)
 
@@ -46,7 +46,7 @@ end
 
 """
     λ0_model(
-        scaling_factors::AbstractVector{<:AbstractFloat},
+        efficiencies::AbstractVector{<:AbstractFloat},
         log_p0_nominal::AbstractVector{<:AbstractFloat},
         mask::AbstractMatrix{Bool};
         multiplicity_thr::Int=1)
@@ -54,7 +54,7 @@ end
 Low-level version of `λ0_model` working with plain arrays and boolean mask.
 """
 function λ0_model(
-    scaling_factors::AbstractVector{<:AbstractFloat},
+    efficiencies::AbstractVector{<:AbstractFloat},
     log_p0_nominal::AbstractMatrix{<:AbstractFloat},
     x0_random_coin::AbstractMatrix{Bool},
     ;
@@ -63,7 +63,7 @@ function λ0_model(
     n_events, n_channels = size(log_p0_nominal)
 
     # avoid numerical issues
-    ϵ = clamp.(scaling_factors, 1e-10, 1 - 1e-10)
+    ϵ = clamp.(efficiencies, 1e-10, 1 - 1e-10)
 
     # no-light probability
     p0 = zeros(n_channels)

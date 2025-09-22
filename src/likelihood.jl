@@ -7,7 +7,7 @@ We model the fraction of events with no detected light (`λ0`) as follows:
 
 - For each channel, the expected no-light probability `λ0_model` comes from
   the simulation (`log_p0_nominal`) combined with random coincidences
-  (`x0_random_coin`) and scaled by per-channel scaling factors
+  (`x0_random_coin`) and scaled by per-channel efficiencies
   (the parameters of the model).
 
 - The observed no-light fraction in data is `λ0_data = N0 / N_data`, where `N0`
@@ -64,7 +64,7 @@ function make_λ0_likelihood(
             @inbounds @simd for i in eachindex(model)
                 # Binomal statistics
                 µ = model[i]
-                σ = sqrt(µ * (1 - µ) / N_data) + smear_factor * μ
+                σ = sqrt(µ * (1 - µ) / N_data) + smear_factor * µ
 
                 logpmf += logpdf(Normal(μ, σ), data[i])
             end
