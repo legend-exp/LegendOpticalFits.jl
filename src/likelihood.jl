@@ -41,18 +41,25 @@ function make_λ0_likelihood(
     multiplicity_thr::Int = 0,
     smear_factor::Real = 0
 )
+    # we choose as channel order the one used in x0
+    ϵ_order = columnnames(x0)
+
     N_data = length(x0)
     data = λ0_data(x0)
 
+    # convert to matrix with the correct order
+    log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
+    x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
+
     return DensityInterface.logfuncdensity(
+        # params is expected to be a NamedTuple, we just pass the values to the
+        # low level routines
         params -> begin
-            # NOTE: this could be sped up a little more by using the low-level routine
-            model = λ0_model(
-                params,
-                log_p0_nominal,
-                x0_random_coin,
-                multiplicity_thr = multiplicity_thr
-            )
+            # make sure the order of the parameters is the correct one
+            p = [params[k] for k in ϵ_order]
+
+            # compute the forward model
+            model = λ0_model(p, log_p0, x0_rc, multiplicity_thr = multiplicity_thr)
 
             logpmf = 0.0
             @inbounds @simd for i in eachindex(model)
