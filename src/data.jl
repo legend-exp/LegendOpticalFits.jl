@@ -74,9 +74,10 @@ Compute per–channel trigger fractions from a boolean `Table` of events.
 
 # Returns
 A `NamedTuple` with one field per channel containing the fraction of
-selected events in which that channel triggered.
+selected events in which that channel triggered and the total number of events
+passing the multiplicity threshold.
 """
-function λ0_data(x0::Table; multiplicity_thr::Int = 0)::NamedTuple
+function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Integer}
     # compute multiplicity per row
     mult = zeros(Int, length(x0))
     for col in columns(x0)
@@ -88,7 +89,7 @@ function λ0_data(x0::Table; multiplicity_thr::Int = 0)::NamedTuple
     nsel == 0 && error("no events pass multiplicity_thr=$multiplicity_thr")
 
     # build NamedTuple of fractions
-    return NamedTuple{columnnames(x0)}(map(col -> count(col[keep]) / nsel, columns(x0)))
+    return NamedTuple{columnnames(x0)}(map(col -> count(col[keep]) / nsel, columns(x0))), nsel
 end
 
 export λ0_data

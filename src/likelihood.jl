@@ -44,8 +44,7 @@ function make_λ0_likelihood(
     # we choose as channel order the one used in x0
     ϵ_order = columnnames(x0)
 
-    N_data = length(x0)
-    data = λ0_data(x0)
+    data, N_data = λ0_data(x0, multiplicity_thr = multiplicity_thr)
 
     # convert to matrix with the correct order
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
