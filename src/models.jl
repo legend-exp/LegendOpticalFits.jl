@@ -110,10 +110,10 @@ Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
 To be used as a CUDA kernel.
 """
 function λ0_model_bulk_ops(
-    rng::AbstractRNG,
-    efficiencies::AbstractVector{<:Number},
+    efficiencies::AbstractVector{<:Number}, # Should be Real, but Reactant tracing array elements are subtypes of Number
     log_p0_nominal::AbstractMatrix{<:Number},
     x0_random_coin::AbstractMatrix{<:Number},
+    rands::AbstractArray{<:Number,3},
     ;
     multiplicity_thr::Int = 0
 )
@@ -129,16 +129,16 @@ function λ0_model_bulk_ops(
     p0 = exp.(log_p0_nominal .* ϵ')
 
     # draw bernoulli distributed numbers and fold in random coincidences
-    drawn = (rand(rng, n_events, n_channels) .< p0) .&& x0_random_coin
+    drawn = (rands .< p0) .* x0_random_coin
 
     # compute the event multiplicity
-    multiplicity = vec(n_channels .- sum(drawn, dims = 2))
+    multiplicity = n_channels .- sum(drawn, dims = 2)
 
     # and select above a threshold
     weights = one(T) .* (multiplicity .>= multiplicity_thr)
 
     # calculate expectation for fraction of events with no light in each channel
-    return vec(sum(drawn .* weights, dims = 1)) / sum(weights)
+    return vec(sum(drawn .* weights, dims = (1, 3))) / sum(weights)
 end
 
 """
