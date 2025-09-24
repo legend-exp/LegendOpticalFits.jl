@@ -4,6 +4,7 @@ using CSV
 using DensityInterface
 using Distributions
 using HDF5
+using HeterogeneousComputing
 using LegendDataManagement: RunSelLike
 using LegendHDF5IO
 using MLDataDevices
