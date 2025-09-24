@@ -19,6 +19,7 @@ All input data is keyed by detector name (a symbol)
   (event, channel). This is typically coming from a measurement.
 - `multiplicity_thr`: discard events with multiplicity below this threshold
   (optional, defaults to 0).
+- `n_rands`: average forward model results over this amount of random numbers.
 
 # Returns
 - Vector of expectation values for each channel, ordered as the input data
@@ -38,25 +39,63 @@ function λ0_model(
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
     x0, _ = _to_matrix(x0_random_coin, order = ϵk)
 
+    # get random engine depending on device (CPU/GPU)
     rng = default_device_rng(get_device(log_p0))
+    # pre-allocate random numbers for forward model evaluation
     n_events, n_channels = size(log_p0)
     rands = rand(rng, n_events, n_channels, n_rands)
 
     # call low-level routine
-    λ0 = λ0_model(ϵv, log_p0, x0, rands, multiplicity_thr = multiplicity_thr)
+    λ0 = _λ0_model_bulk_ops(ϵv, log_p0, x0, rands, multiplicity_thr = multiplicity_thr)
 
     # re-label as a NamedTuple keyed by channel symbols
     return NamedTuple{ϵk}(Tuple(λ0))
 end
 
-"""
-    λ0_model(
-        efficiencies::AbstractVector{<:AbstractFloat},
-        log_p0_nominal::AbstractVector{<:AbstractFloat},
-        mask::AbstractMatrix{Bool};
-        multiplicity_thr::Int=1)
+export λ0_model
 
-Low-level version of `λ0_model` working with plain arrays and boolean mask.
+"""
+    _λ0_model_bulk_ops()
+
+Low-level implementation of `λ0_model` using bulk array programming, Reactant /
+CUDA compatible.
+"""
+function _λ0_model_bulk_ops(
+    efficiencies::AbstractVector{<:Number}, # Should be Real, but Reactant tracing array elements are subtypes of Number
+    log_p0_nominal::AbstractMatrix{<:Number},
+    x0_random_coin::AbstractMatrix{<:Number},
+    rands::AbstractArray{<:Number,3},
+    ;
+    multiplicity_thr::Int = 0
+)
+    T = eltype(efficiencies)
+
+    n_events, n_channels = size(log_p0_nominal)
+
+    # avoid numerical issues
+    ϵ = clamp.(efficiencies, 1e-10, 1 - 1e-10)
+
+    # calculate the probability to see no light
+    # NOTE: exp is expensive, do it here
+    p0 = exp.(log_p0_nominal .* ϵ')
+
+    # draw bernoulli distributed numbers and fold in random coincidences
+    drawn = (rands .< p0) .* x0_random_coin
+
+    # compute the event multiplicity
+    multiplicity = n_channels .- sum(drawn, dims = 2)
+
+    # and select above a threshold
+    weights = one(T) .* (multiplicity .>= multiplicity_thr)
+
+    # calculate expectation for fraction of events with no light in each channel
+    return vec(sum(drawn .* weights, dims = (1, 3))) / sum(weights)
+end
+
+"""
+    _λ0_model_loops()
+
+Low-level implementation of `λ0_model` using for loops.
 """
 function _λ0_model_loops(
     efficiencies::AbstractVector{<:AbstractFloat},
@@ -104,46 +143,6 @@ function _λ0_model_loops(
     end
 
     return N0 ./ N
-end
-
-export λ0_model
-
-"""
-    λ0_model_bulk_ops(...)
-
-Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
-To be used as a CUDA kernel.
-"""
-function λ0_model(
-    efficiencies::AbstractVector{<:Number}, # Should be Real, but Reactant tracing array elements are subtypes of Number
-    log_p0_nominal::AbstractMatrix{<:Number},
-    x0_random_coin::AbstractMatrix{<:Number},
-    rands::AbstractArray{<:Number,3},
-    ;
-    multiplicity_thr::Int = 0
-)
-    T = eltype(efficiencies)
-
-    n_events, n_channels = size(log_p0_nominal)
-
-    # avoid numerical issues
-    ϵ = clamp.(efficiencies, 1e-10, 1 - 1e-10)
-
-    # calculate the probability to see no light
-    # NOTE: exp is expensive, do it here
-    p0 = exp.(log_p0_nominal .* ϵ')
-
-    # draw bernoulli distributed numbers and fold in random coincidences
-    drawn = (rands .< p0) .* x0_random_coin
-
-    # compute the event multiplicity
-    multiplicity = n_channels .- sum(drawn, dims = 2)
-
-    # and select above a threshold
-    weights = one(T) .* (multiplicity .>= multiplicity_thr)
-
-    # calculate expectation for fraction of events with no light in each channel
-    return vec(sum(drawn .* weights, dims = (1, 3))) / sum(weights)
 end
 
 """
