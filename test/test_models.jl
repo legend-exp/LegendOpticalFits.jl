@@ -16,7 +16,7 @@ using StatsBase
         lp0 = log.(rand(n_events, n_channels))
         x0_rc = rand(Bool, n_events, n_channels)
 
-        n_events, n_channels = size(log_p0_nominal)
+        n_events, n_channels = size(lp0)
         rands = rand(n_events, n_channels, 10)
 
         λ0 = LegendOpticalFits._λ0_model_bulk_ops(ϵ, lp0, x0_rc, rands)
