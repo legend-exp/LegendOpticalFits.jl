@@ -1,5 +1,5 @@
 """
-    make_likelihood_λ0()
+    make_λ0_likelihood(x0, log_p0_nominal, x0_random_coin; multiplicity_thr=0, n_rands=10, smear_factor=0) -> DensityFunction
 
 Construct the likelihood of no-light probabilities.
 
@@ -26,6 +26,7 @@ The likelihood is the sum of log-probabilities across all channels.
 - `x0_random_coin`: observed no-light indicators from random coincidence events.
 - `multiplicity_thr`: discard events with multiplicity below this threshold
   (optional, defaults to 0).
+- `n_rands`: average forward model results over this amount of random numbers.
 - `smear_factor`: the width of the likelihood gaussian terms is increased by a
   factor `smear_factor * mean`.
 
@@ -39,6 +40,7 @@ function make_λ0_likelihood(
     x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 0,
+    n_rands::Int = 10,
     smear_factor::Real = 0
 )
     # we choose as channel order the one used in x0
@@ -50,26 +52,28 @@ function make_λ0_likelihood(
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
     x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
 
+    # get random engine depending on device (CPU/GPU)
+    rng = default_device_rng(get_device(log_p0))
+    # pre-allocate random numbers for forward model evaluation
+    n_events, n_channels = size(log_p0)
+    rands = rand(rng, n_events, n_channels, n_rands)
+
     return DensityInterface.logfuncdensity(
         # params is expected to be a NamedTuple, we just pass the values to the
         # low level routines
-        params -> begin
+        ϵ -> begin
             # make sure the order of the parameters is the correct one
-            p = [params[k] for k in ϵ_order]
+            ϵv = [ϵ[k] for k in ϵ_order]
 
             # compute the forward model
-            model = λ0_model(p, log_p0, x0_rc, multiplicity_thr = multiplicity_thr)
+            model = _λ0_model_bulk_ops(ϵv, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
 
-            logpmf = 0.0
-            @inbounds @simd for i in eachindex(model)
-                # Binomal statistics
-                µ = model[i]
-                σ = sqrt(µ * (1 - µ) / N_data) + smear_factor * µ
+            # and the log-likelihood
+            μ = model
+            σ = sqrt.(µ .* (1 .- µ) / N_data) .+ smear_factor .* µ
+            logl = sum(logpdf.(Normal.(μ, σ), values(data)))
 
-                logpmf += logpdf(Normal(μ, σ), data[i])
-            end
-
-            return logpmf
+            return logl
         end
     )
 end

@@ -35,13 +35,12 @@ export load_optical_map
 
 
 """
-    rand_voxel(optmap::OpticalMap; zlims = (20, 180)) -> (x, y, z)
+    rand_voxel(optmap::OpticalMap; xrange = nothing, yrange = nothing, zrange = nothing) -> (ix, iy, iz)
 
 Sample a random valid voxel (bin indices) from an `OpticalMap`.
 
-The function draws random `(x, y, z)` coordinates within the histogram domain
-of the optical map the histogram of the first channel is used to determine the
-geometry (all channels share the same dimensions).
+The function draws random voxel indices `(ix, iy, iz)` within the histogram domain of the optical map.
+The histogram of the first channel is used to determine the geometry (all channels share the same dimensions).
 
 # Arguments
 - `optmap`: optical map (see [`load_optical_map`](@ref).
