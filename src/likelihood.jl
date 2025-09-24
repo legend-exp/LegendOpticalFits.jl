@@ -1,5 +1,5 @@
 """
-    make_likelihood_λ0()
+    make_λ0_likelihood(x0, log_p0_nominal, x0_random_coin; multiplicity_thr=0, n_rands=10, smear_factor=0) -> DensityFunction
 
 Construct the likelihood of no-light probabilities.
 

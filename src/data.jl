@@ -15,7 +15,7 @@ corresponds to a SiPM channel and each row to an event.
 
 # Returns
 a `Table` of booleans with dimensions `(max_events, n_channels)`.
-each entry is `true` if at least one qualifying photon was observed,
+each entry is `true` if no qualifying photon was observed,
 `false` otherwise.
 
 # Examples
@@ -64,17 +64,17 @@ export x0_data
 """
     λ0_data(x0; multiplicity_thr=0) -> NamedTuple
 
-Compute per–channel trigger fractions from a boolean `Table` of events.
+Compute per–channel no-light fractions from a boolean `Table` of events.
 
 # Arguments
 - `x0`: a `Table` where each column corresponds to a channel and each row
-  to an event; entries are `Bool` indicating whether the channel triggered.
-- `multiplicity_thr`: minimum number of triggered channels per event required
+  to an event; entries are `Bool` indicating whether no qualifying photon was observed in the channel.
+- `multiplicity_thr`: minimum number of channels with light per event required
   for the event to be considered. Defaults to `0`.
 
 # Returns
 A `NamedTuple` with one field per channel containing the fraction of
-selected events in which that channel triggered and the total number of events
+selected events in which that channel had no light, and the total number of events
 passing the multiplicity threshold.
 """
 function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Integer}
