@@ -68,16 +68,12 @@ function make_λ0_likelihood(
             # compute the forward model
             model = _λ0_model_bulk_ops(ϵv, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
 
-            logpmf = 0.0
-            @inbounds @simd for i in eachindex(model)
-                # Binomal statistics
-                µ = model[i]
-                σ = sqrt(µ * (1 - µ) / N_data) + smear_factor * µ
+            # and the log-likelihood
+            μ = model
+            σ = sqrt.(µ .* (1 .- µ) / N_data) .+ smear_factor .* µ
+            logl = sum(logpdf.(Normal.(μ, σ), values(data)))
 
-                logpmf += logpdf(Normal(μ, σ), data[i])
-            end
-
-            return logpmf
+            return logl
         end
     )
 end
