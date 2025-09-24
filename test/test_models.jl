@@ -26,7 +26,9 @@ using StatsBase
         @test all(0 .<= λ0 .<= 1)
 
         # bulk ops
+        rng = Random.default_rng()
         λ0_bulk = LegendOpticalFits.λ0_model_bulk_ops(
+            rng,
             efficiencies,
             log_p0_nominal,
             x0_random_coin

@@ -50,6 +50,8 @@ function make_λ0_likelihood(
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
     x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
 
+    rng = default_device_rng(get_device(log_p0))
+
     return DensityInterface.logfuncdensity(
         # params is expected to be a NamedTuple, we just pass the values to the
         # low level routines
@@ -58,7 +60,7 @@ function make_λ0_likelihood(
             p = [params[k] for k in ϵ_order]
 
             # compute the forward model
-            model = λ0_model(p, log_p0, x0_rc, multiplicity_thr = multiplicity_thr)
+            model = λ0_model_bulk_ops(rng, p, log_p0, x0_rc, multiplicity_thr = multiplicity_thr)
 
             logpmf = 0.0
             @inbounds @simd for i in eachindex(model)

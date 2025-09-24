@@ -110,32 +110,35 @@ Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
 To be used as a CUDA kernel.
 """
 function λ0_model_bulk_ops(
-    efficiencies::AbstractVector{<:AbstractFloat},
-    log_p0_nominal::AbstractMatrix{<:AbstractFloat},
-    x0_random_coin::AbstractMatrix{Bool},
+    rng::AbstractRNG,
+    efficiencies::AbstractVector{<:Number},
+    log_p0_nominal::AbstractMatrix{<:Number},
+    x0_random_coin::AbstractMatrix{<:Number},
     ;
     multiplicity_thr::Int = 0
 )
+    T = eltype(efficiencies)
+
     n_events, n_channels = size(log_p0_nominal)
 
     # avoid numerical issues
-    ϵ = clamp!(copy(efficiencies), 1e-10, 1 - 1e-10)
+    ϵ = clamp.(efficiencies, 1e-10, 1 - 1e-10)
 
     # calculate the probability to see no light
     # NOTE: exp is expensive, do it here
     p0 = exp.(log_p0_nominal .* ϵ')
 
     # draw bernoulli distributed numbers and fold in random coincidences
-    drawn = (rand(n_events, n_channels) .< p0) .&& x0_random_coin
+    drawn = (rand(rng, n_events, n_channels) .< p0) .&& x0_random_coin
 
     # compute the event multiplicity
     multiplicity = vec(n_channels .- sum(drawn, dims = 2))
 
     # and select above a threshold
-    mask = multiplicity .>= multiplicity_thr
+    weights = one(T) .* (multiplicity .>= multiplicity_thr)
 
     # calculate expectation for fraction of events with no light in each channel
-    return vec(sum(drawn[mask, :], dims = 1)) / count(mask)
+    return vec(sum(drawn .* weights, dims = 1)) / sum(weights)
 end
 
 """
