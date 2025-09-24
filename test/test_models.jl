@@ -20,7 +20,7 @@ using StatsBase
         n_events, n_channels = size(log_p0_nominal)
         rands = rand(rng, n_events, n_channels, 10)
 
-        λ0 = LegendOpticalFits.λ0_model_bulk_ops(
+        λ0 = LegendOpticalFits.λ0_model(
             efficiencies,
             log_p0_nominal,
             x0_random_coin,

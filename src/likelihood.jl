@@ -39,6 +39,7 @@ function make_λ0_likelihood(
     x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 0,
+    n_rands::Int = 10,
     smear_factor::Real = 0
 )
     # we choose as channel order the one used in x0
@@ -52,7 +53,7 @@ function make_λ0_likelihood(
 
     rng = default_device_rng(get_device(log_p0))
     n_events, n_channels = size(log_p0)
-    rands = rand(rng, n_events, n_channels, 10)
+    rands = rand(rng, n_events, n_channels, n_rands)
 
     return DensityInterface.logfuncdensity(
         # params is expected to be a NamedTuple, we just pass the values to the
@@ -62,7 +63,7 @@ function make_λ0_likelihood(
             p = [params[k] for k in ϵ_order]
 
             # compute the forward model
-            model = λ0_model_bulk_ops(p, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
+            model = λ0_model(p, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
 
             logpmf = 0.0
             @inbounds @simd for i in eachindex(model)

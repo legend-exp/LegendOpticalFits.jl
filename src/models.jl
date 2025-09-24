@@ -29,7 +29,8 @@ function λ0_model(
     log_p0_nominal::Table,
     x0_random_coin::Table,
     ;
-    multiplicity_thr::Int = 0
+    multiplicity_thr::Int = 0,
+    n_rands::Int = 10
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
     ϵk = keys(efficiencies);
@@ -37,8 +38,12 @@ function λ0_model(
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
     x0, _ = _to_matrix(x0_random_coin, order = ϵk)
 
+    rng = default_device_rng(get_device(log_p0))
+    n_events, n_channels = size(log_p0)
+    rands = rand(rng, n_events, n_channels, n_rands)
+
     # call low-level routine
-    λ0 = λ0_model(ϵv, log_p0, x0, multiplicity_thr = multiplicity_thr)
+    λ0 = λ0_model(ϵv, log_p0, x0, rands, multiplicity_thr = multiplicity_thr)
 
     # re-label as a NamedTuple keyed by channel symbols
     return NamedTuple{ϵk}(Tuple(λ0))
@@ -53,7 +58,7 @@ end
 
 Low-level version of `λ0_model` working with plain arrays and boolean mask.
 """
-function λ0_model(
+function _λ0_model_loops(
     efficiencies::AbstractVector{<:AbstractFloat},
     log_p0_nominal::AbstractMatrix{<:AbstractFloat},
     x0_random_coin::AbstractMatrix{Bool},
@@ -109,7 +114,7 @@ export λ0_model
 Low-level version of [`λ0_model`](@ref) that uses bulk array programming.
 To be used as a CUDA kernel.
 """
-function λ0_model_bulk_ops(
+function λ0_model(
     efficiencies::AbstractVector{<:Number}, # Should be Real, but Reactant tracing array elements are subtypes of Number
     log_p0_nominal::AbstractMatrix{<:Number},
     x0_random_coin::AbstractMatrix{<:Number},
