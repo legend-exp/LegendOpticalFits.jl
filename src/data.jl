@@ -79,9 +79,12 @@ passing the multiplicity threshold.
 """
 function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Integer}
     # compute multiplicity per row
-    mult = zeros(Int, length(x0))
+    # NOTE: we use floats so this function also works with asimov data sets!
+    n_channels = length(columns(x0))
+    mult = fill(Float64(n_channels), length(x0))
     for col in columns(x0)
-        mult .+= .!col
+        # true if there is no light
+        mult .-= col
     end
 
     keep = mult .>= multiplicity_thr
@@ -89,7 +92,9 @@ function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Intege
     nsel == 0 && error("no events pass multiplicity_thr=$multiplicity_thr")
 
     # build NamedTuple of fractions
-    return NamedTuple{columnnames(x0)}(map(col -> count(col[keep]) / nsel, columns(x0))), nsel
+    λ0 = NamedTuple{columnnames(x0)}(map(col -> sum(col[keep]) / nsel, columns(x0))), nsel
+
+    return λ0
 end
 
 export λ0_data

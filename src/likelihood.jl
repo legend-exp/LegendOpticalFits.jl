@@ -46,8 +46,6 @@ function make_λ0_likelihood(
     # we choose as channel order the one used in x0
     ϵ_order = columnnames(x0)
 
-    data, N_data = λ0_data(x0, multiplicity_thr = multiplicity_thr)
-
     # convert to matrix with the correct order
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
     x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
@@ -57,6 +55,9 @@ function make_λ0_likelihood(
     # pre-allocate random numbers for forward model evaluation
     n_events, n_channels = size(log_p0)
     rands = rand(rng, n_events, n_channels, n_rands)
+
+    λ0, N_ev = λ0_data(x0, multiplicity_thr = multiplicity_thr)
+    data = [λ0[k] for k in ϵ_order]
 
     return DensityInterface.logfuncdensity(
         # params is expected to be a NamedTuple, we just pass the values to the
@@ -69,9 +70,12 @@ function make_λ0_likelihood(
             model = _λ0_model_bulk_ops(ϵv, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
 
             # and the log-likelihood
+            x = data
             μ = model
-            σ = sqrt.(µ .* (1 .- µ) / N_data) .+ smear_factor .* µ
-            logl = sum(logpdf.(Normal.(μ, σ), values(data)))
+            # Gaussian approximation of the binomial distribution
+            σ = sqrt.((µ .- µ .^ 2) / N_ev) .+ smear_factor .* μ
+
+            logl = sum(- (x .- μ) .^ 2 ./ (σ .^ 2))
 
             return logl
         end
