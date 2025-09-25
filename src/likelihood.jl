@@ -52,7 +52,7 @@ function make_λ0_likelihood(
     x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
 
     # cast x0 to floating point for later computation
-    x0_rc = eltype(log_p0).(x0_rc)
+    float_x0_rc = eltype(log_p0).(x0_rc)
 
     # pre-allocate random numbers for forward model evaluation
     n_events, n_channels = size(log_p0)
@@ -63,7 +63,7 @@ function make_λ0_likelihood(
     data = [λ0[k] for k in ϵ_order]
 
     # prepare model for computation on the requested device (CPU or GPU)
-    _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, x0_rc, rands, multiplicity_thr)
+    _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
     _model_on_dev = on_device(_model, device, rand(eltype(log_p0), n_channels))
 
     return DensityInterface.logfuncdensity(
@@ -90,27 +90,3 @@ function make_λ0_likelihood(
 end
 
 export make_λ0_likelihood
-
-
-function _λ0_model_func(;
-    log_p0_nominal::AbstractMatrix{<:Real},
-    x0_random_coin::AbstractMatrix{<:Bool},
-    n_rand::Integer = 10,
-    multiplicity_thr::Integer = 0,
-    rng::AbstractRNG = Random.default_rng()
-)
-    T = eltype(log_p0_nominal)
-    n_events, n_channels = size(log_p0_nominal)
-    rands = rand(rng, n_events, n_channels, n_rand)
-
-    float_x0_random_coin = T.(x0_random_coin)
-
-    function run_model(efficiencies::AbstractVector{<:Number})
-        return _λ0_model_bulk_ops(
-            efficiencies, log_p0_nominal, float_x0_random_coin, rands,
-            multiplicity_thr = multiplicity_thr
-        )
-    end
-
-    return run_model
-end
