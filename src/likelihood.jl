@@ -39,6 +39,7 @@ function make_λ0_likelihood(
     log_p0_nominal::Table,
     x0_random_coin::Table,
     ;
+    rng::AbstractRNG = Random.default_rng(),
     multiplicity_thr::Int = 0,
     n_rands::Int = 10,
     smear_factor::Real = 0
@@ -50,8 +51,9 @@ function make_λ0_likelihood(
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵ_order)
     x0_rc, _ = _to_matrix(x0_random_coin, order = ϵ_order)
 
-    # get random engine depending on device (CPU/GPU)
-    rng = default_device_rng(get_device(log_p0))
+    # cast x0 to log_p0 type
+    x0_rc = eltype(log_p0).(x0_rc)
+
     # pre-allocate random numbers for forward model evaluation
     n_events, n_channels = size(log_p0)
     rands = rand(rng, n_events, n_channels, n_rands)
@@ -60,10 +62,10 @@ function make_λ0_likelihood(
     data = [λ0[k] for k in ϵ_order]
 
     return DensityInterface.logfuncdensity(
-        # params is expected to be a NamedTuple, we just pass the values to the
-        # low level routines
         ϵ -> begin
-            # make sure the order of the parameters is the correct one
+            # ϵ is expected to be a NamedTuple, we just pass the values to
+            # the low level routines. make sure the order of the parameters is
+            # the correct one
             ϵv = [ϵ[k] for k in ϵ_order]
 
             # compute the forward model
@@ -83,3 +85,27 @@ function make_λ0_likelihood(
 end
 
 export make_λ0_likelihood
+
+
+# function _λ0_model_bulk_ops_func(;
+#     log_p0_nominal::AbstractMatrix{<:Real},
+#     x0_random_coin::AbstractMatrix{<:Bool},
+#     n_rand::Integer = 10,
+#     multiplicity_thr::Integer = 0,
+#     rng::AbstractRNG = Random.default_rng()
+# )
+#     T = eltype(log_p0_nominal)
+#     n_events, n_channels = size(log_p0_nominal)
+#     rands = rand(rng, n_events, n_channels, n_rand)
+
+#     float_x0_random_coin = T.(x0_random_coin)
+
+#     function run_model(efficiencies::AbstractVector{<:Number})
+#         return _λ0_model_bulk_ops(
+#             efficiencies, log_p0_nominal, float_x0_random_coin, rands,
+#             multiplicity_thr = multiplicity_thr
+#         )
+#     end
+
+#     return run_model
+# end

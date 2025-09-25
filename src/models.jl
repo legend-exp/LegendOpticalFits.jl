@@ -92,31 +92,6 @@ function _λ0_model_bulk_ops(
     return vec(sum(drawn .* weights, dims = (1, 3))) / sum(weights)
 end
 
-
-function _λ0_model_bulk_ops_func(;
-    log_p0_nominal::AbstractMatrix{<:Real},
-    x0_random_coin::AbstractMatrix{<:Bool},
-    n_rand::Integer = 10,
-    multiplicity_thr::Integer = 0,
-    rng::AbstractRNG = Random.default_rng()
-)
-    T = eltype(log_p0_nominal)
-    n_events, n_channels = size(log_p0_nominal)
-    rands = rand(rng, n_events, n_channels, n_rand)
-
-    float_x0_random_coin = T.(x0_random_coin)
-
-    function run_model(efficiencies::AbstractVector{<:Number})
-        return _λ0_model_bulk_ops(
-            efficiencies, log_p0_nominal, float_x0_random_coin, rands,
-            multiplicity_thr = multiplicity_thr
-        )
-    end
-
-    return run_model
-end
-
-
 """
     _λ0_model_loops()
 
