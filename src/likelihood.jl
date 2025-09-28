@@ -92,8 +92,7 @@ function make_λ0_likelihood(
 
     # pre-allocate random numbers for forward model evaluation
     n_events, n_channels = size(log_p0)
-    rng = default_device_rng(get_device(log_p0))
-    rands = rand(rng, n_events, n_channels, n_rands)
+    rands = rand(n_events, n_channels, n_rands)
 
     # prepare data
     λ0, N_ev = λ0_data(x0, multiplicity_thr = multiplicity_thr)
