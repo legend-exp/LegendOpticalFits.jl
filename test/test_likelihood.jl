@@ -8,8 +8,8 @@ using DensityInterface
 
 @testset "likelihoods" begin
     @testset "λ0" begin
-        nev_sim = 10_000
-        nev_data = 1_000
+        nev_sim = 100_000
+        nev_data = 10_000
         n_channels = 50
 
         # test with asimov dataset
