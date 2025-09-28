@@ -1,7 +1,7 @@
 """
-    make_λ0_likelihood(x0, log_p0_nominal, x0_random_coin; multiplicity_thr=0, n_rands=10, smear_factor=0) -> DensityFunction
+    make_λ0_likelihood(x0, log_p0_nominal, x0_random_coin; multiplicity_thr=0, n_rands=10, smear_factor=0, device=CPUDevice()) -> DensityFunction
 
-Construct the likelihood of no-light probabilities.
+Construct the likelihood of no-light fractions per channel.
 
 We model the fraction of events with no detected light (`λ0`) as follows:
 
@@ -29,6 +29,42 @@ The likelihood is the sum of log-probabilities across all channels.
 - `n_rands`: average forward model results over this amount of random numbers.
 - `smear_factor`: the width of the likelihood gaussian terms is increased by a
   factor `smear_factor * mean`.
+- `device`: on which device to run the computation of the forward model. (default
+  `CPUDevice()`)
+
+# Examples
+
+Get some data:
+
+```julia
+using LegendOpticalFits
+
+runsel = (:p13, :r001)
+nev_sim = 10_000
+nev_data = 1_000
+multiplicity_thr = 6
+
+optmap = load_optical_map("./optmap-p13.lh5", runsel)
+log_p0 = log_p0_nominal_ar39(optmap, nev_sim)
+
+x0 = x0_data("l200-p13-r001-ath-tier_evt.lh5", runsel, max_events=nev_data)
+x0_rc = x0_data("l200-p13-r001-ant-tier_evt.lh5", runsel, max_events=nev_sim)
+```
+
+Build the likelihood (on the CPU by default):
+
+```julia
+logl = make_λ0_likelihood(x0, lp0, x0_rc, multiplicity_thr=multiplicity_thr)
+```
+
+CUDA via Reactant/XLA:
+
+```julia
+using Reactant
+Reactant.set_default_backend("cuda")
+
+logl = make_λ0_likelihood(x0, lp0, x0_rc, multiplicity_thr=multiplicity_thr, device=ReactantDevice())
+```
 
 # Returns
 - A `DensityFunction` object representing the log-likelihood. It can be called
