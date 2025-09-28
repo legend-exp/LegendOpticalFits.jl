@@ -99,7 +99,7 @@ function make_λ0_likelihood(
     data = [λ0[k] for k in ϵ_order]
 
     # prepare model for computation on the requested device (CPU or GPU)
-    _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
+    _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, float_x0_rc, rands, multiplicity_thr = multiplicity_thr)
     _model_on_dev = on_device(_model, device, rand(eltype(log_p0), n_channels))
 
     function _logl(ϵ)
