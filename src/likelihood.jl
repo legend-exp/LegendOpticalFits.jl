@@ -117,9 +117,7 @@ function make_λ0_likelihood(
         # Gaussian approximation of the binomial distribution
         σ = sqrt.((μ .- μ .^ 2) / N_ev) .+ smear_factor .* μ
 
-        logl = sum(- (x .- μ) .^ 2 ./ (σ .^ 2))
-
-        return logl
+        return sum(logpdf.(Normal.(μ, σ), x))
     end
 
     return DensityInterface.logfuncdensity(_logl)
