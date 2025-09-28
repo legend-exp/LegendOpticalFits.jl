@@ -66,27 +66,27 @@ function make_λ0_likelihood(
     _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, x0_rc, rands, multiplicity_thr = multiplicity_thr)
     _model_on_dev = on_device(_model, device, rand(eltype(log_p0), n_channels))
 
-    return DensityInterface.logfuncdensity(
-        ϵ -> begin
-            # ϵ is expected to be a NamedTuple, we just pass the values to
-            # the low level routines. make sure the order of the parameters is
-            # the correct one
-            ϵv = [ϵ[k] for k in ϵ_order]
+    function _logl(ϵ)
+        # ϵ is expected to be a NamedTuple, we just pass the values to
+        # the low level routines. make sure the order of the parameters is
+        # the correct one
+        ϵv = [ϵ[k] for k in ϵ_order]
 
-            # compute the forward model
-            model = _model_on_dev(ϵv)
+        # compute the forward model
+        model = _model_on_dev(ϵv)
 
-            # and the log-likelihood
-            x = data
-            μ = model
-            # Gaussian approximation of the binomial distribution
-            σ = sqrt.((μ .- μ .^ 2) / N_ev) .+ smear_factor .* μ
+        # and the log-likelihood
+        x = data
+        μ = model
+        # Gaussian approximation of the binomial distribution
+        σ = sqrt.((μ .- μ .^ 2) / N_ev) .+ smear_factor .* μ
 
-            logl = sum(- (x .- μ) .^ 2 ./ (σ .^ 2))
+        logl = sum(- (x .- μ) .^ 2 ./ (σ .^ 2))
 
-            return logl
-        end
-    )
+        return logl
+    end
+
+    return DensityInterface.logfuncdensity(_logl)
 end
 
 export make_λ0_likelihood
