@@ -60,33 +60,33 @@ function log_p0_nominal_ar39(
     # load Ar39 beta spectrum
     dist_ar39 = ar39_beta_energy_dist()
 
-    ch_keys = collect(keys(optmap))
-
-    # get n_events beta energies
+    # sample beta energies (in keV)
     sampled_energies = rand(dist_ar39, n_events)
-    # sample number of photons
-    ar39_photons = rand.(Poisson.(sampled_energies .* light_yield))
 
-    # initialize dictionary of zeros for each channel
-    p0_nom = Dict(ch => zeros(n_events) for ch in ch_keys)
+    # use the first histogram to get edges for voxel centers
+    h = first(values(optmap))
+    ex, ey, ez = h.edges
 
-    for event_idx in 1:n_events
-        # get valid lar voxel
-        point = rand_voxel(optmap, rand_voxel_kwargs...)
+    # helper to compute bin center from edges and index
+    center(e, i) = (e[i] + e[i+1]) / 2
 
-        # get how many scintillation photons for this event
-        n = ar39_photons[event_idx]
+    # build per-event single-step coordinates and energy deposits
+    xloc = Vector{Vector{typeof(1.0u"m")}}(undef, n_events)
+    yloc = Vector{Vector{typeof(1.0u"m")}}(undef, n_events)
+    zloc = Vector{Vector{typeof(1.0u"m")}}(undef, n_events)
+    edep = Vector{Vector{typeof(1.0u"keV")}}(undef, n_events)
 
-        # store map values at point for all channels
-        for ch in ch_keys
-            # map probability at selected voxel
-            ξ = getproperty(optmap, ch).weights[point...]
-            # get expected number of detected photons with efficiency 1
-            p0_nom[ch][event_idx] = -n * ξ
-        end
+    for i in 1:n_events
+        ix, iy, iz = rand_voxel(optmap, rand_voxel_kwargs...)
+        xloc[i] = [center(ex, ix) * u"m"]
+        yloc[i] = [center(ey, iy) * u"m"]
+        zloc[i] = [center(ez, iz) * u"m"]
+        edep[i] = [sampled_energies[i] * u"keV"]
     end
 
-    return Table(p0_nom)
+    sim_tbl = Table(xloc = xloc, yloc = yloc, zloc = zloc, edep = edep)
+
+    return log_p0_nominal(sim_tbl, optmap; light_yield = light_yield, rand_voxel_kwargs...)
 end
 
 export log_p0_nominal_ar39
