@@ -13,11 +13,13 @@ using Random
 using StatsBase
 using TypedTables
 using Tables
+using Unitful
 
 include("utils.jl")
 include("channelmap.jl")
 include("data.jl")
 include("optmap.jl")
+include("simulation.jl")
 include("models.jl")
 include("likelihood.jl")
 include("priors.jl")

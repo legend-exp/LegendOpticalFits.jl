@@ -24,3 +24,5 @@ end
 function _to_table(matrix::AbstractMatrix, colnames)
     return Table(; (name => matrix[:, j] for (j, name) in enumerate(colnames))...)
 end
+
+ustrip_vov(u, v) = map(_v -> ustrip.(u"keV", _v), v)
