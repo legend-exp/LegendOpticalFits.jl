@@ -35,15 +35,10 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
 
         # we want to check if there is light for each event and channel
         # map rawid directly to the column vector
-        if exclude_unusable
-            x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap) if chmap[sipm].usable)
-            rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap if v.usable)
-        else
-            x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap))
-            rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap)
-        end
+        x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap))
+        rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap)
 
-        # FIXME: this is quite slow?
+        # FIXME: this is quite slow, can do without for loops
         for i in eachindex(events)
             rawid = events[i].rawid
             # we use the high pe threshold to avoid counting afterpulses
@@ -58,6 +53,11 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
                 end
             end
         end
+    end
+
+    # remove sipm channels marked as unusable
+    if exclude_unusable
+        delete!(x0_cols, [k for (k, v) in chmap if v.usable == false])
     end
 
     return Table(; x0_cols...)

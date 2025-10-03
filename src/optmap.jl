@@ -29,7 +29,7 @@ function load_optical_map(filename::AbstractString, runsel::RunSelLike; exclude_
 
         # optionally exclude unusable channels
         if exclude_unusable
-            detnames = filter(id -> chmap[id].usable == 1, detnames)
+            detnames = filter(id -> chmap[id].usable == true, detnames)
         end
 
         order = sortperm(string.(detnames))
