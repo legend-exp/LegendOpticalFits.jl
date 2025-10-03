@@ -34,7 +34,7 @@ function log_p0_nominal(
     sim_data::Table,
     optmap::OpticalMap,
     ;
-    light_yield::Quantity = 40u"1/keV"
+    light_yield::Quantity = 51u"1/keV"
 )::Table
     # handy references
     coords = (sim_data.xloc, sim_data.yloc, sim_data.zloc)
@@ -84,7 +84,7 @@ function log_p0_nominal_ar39(
     optmap::OpticalMap,
     n_events::Integer
     ;
-    light_yield::Quantity = 40u"1/keV",
+    light_yield::Quantity = 51u"1/keV",
     rand_voxel_kwargs...
 )::Table
 
