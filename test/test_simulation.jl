@@ -5,6 +5,7 @@ using LegendTestData
 using StatsBase
 using LegendHDF5IO
 using TypedTables
+using Unitful
 
 @testset "simulation" begin
     @testset "log(p0) from Ar-39" begin
@@ -34,7 +35,7 @@ using TypedTables
         @test all(all(isfinite.(getproperty(p0, ch))) for ch in channels)
 
         # with zero light yield, all entries should be exactly zero
-        p0_zero = log_p0_nominal_ar39(optmap, n_events; light_yield = 0)
+        p0_zero = log_p0_nominal_ar39(optmap, n_events; light_yield = 0u"1/keV")
         @test all(all(getproperty(p0_zero, ch) .== 0) for ch in channels)
     end
 
@@ -49,7 +50,7 @@ using TypedTables
         end
 
         # call the function
-        result = log_p0_nominal(sim_data, optmap; light_yield = 40)
+        result = log_p0_nominal(sim_data, optmap; light_yield = 40u"1/keV")
 
         # basic type/shape checks
         @test result isa Table

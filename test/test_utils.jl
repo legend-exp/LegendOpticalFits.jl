@@ -1,7 +1,8 @@
 using Test
-using LegendOpticalFits
+using LegendOpticalFits: ustrip_vov
 
 using TypedTables
+using Unitful
 
 @testset "utilities" begin
     @testset "ar39 beta energy distribution" begin

@@ -1,9 +1,40 @@
+"""
+    log_p0_nominal(sim_data, optical_map; ...)
+
+Logarithm of no-light-probability for events simulated by remage.
+
+This can be used to compute inputs for [`λ0_model`](@ref).
+
+# Arguments
+- `sim_data`: output table (stepping data) for a scintillation detector (the
+  same the optical map refers to) from remage. Must contain the fields `xloc`,
+  `yloc`, `zloc` and `edep`.
+- `optmap`: liquid argon optical map as loaded by [`load_optical_map`](@ref).
+- `n_events`: number of Ar-39 decays to simulate.
+- `light_yield`: liquid argon scintillation yield.
+
+# Returns
+A table of `log(p0)` for each channel (columns) and event (rows).
+
+# Examples
+```julia
+# load an optical map
+optmap = load_optical_map("map.lh5", (:p13, :r001))
+
+# load some remage simulation data
+sim_data = lh5open("th228.lh5") do h5
+    return h5["stp/lar"][:]
+end
+
+# call the function
+log_p0_nominal(sim_data, optmap)
+```
+"""
 function log_p0_nominal(
     sim_data::Table,
     optmap::OpticalMap,
     ;
-    light_yield::Integer = 40,
-    rand_voxel_kwargs...
+    light_yield::Quantity = 40u"1/keV"
 )::Table
     # handy references
     coords = (sim_data.xloc, sim_data.yloc, sim_data.zloc)
@@ -13,7 +44,7 @@ function log_p0_nominal(
     lp0 = Dict{Symbol,Vector{Float64}}()
 
     # number of scintillation photons
-    n = map(edep -> rand.(Poisson.(ustrip.(u"keV", edep) .* light_yield)), edeps)
+    n = map(edep -> rand.(Poisson.(edep .* light_yield)), edeps)
 
     for ch in keys(optmap)
         # detection probability
@@ -42,7 +73,7 @@ events. This can be used to compute inputs for [`λ0_model`](@ref).
 # Arguments
 - `optmap`: liquid argon optical map as loaded by [`load_optical_map`](@ref).
 - `n_events`: number of Ar-39 decays to simulate.
-- `light_yield`: liquid argon scintillation yield in units of photons / keV.
+- `light_yield`: liquid argon scintillation yield.
 - `rand_voxel_kwargs...`: optional keyword arguments forwarded to
   [`rand_voxel`](@ref).
 
@@ -53,7 +84,7 @@ function log_p0_nominal_ar39(
     optmap::OpticalMap,
     n_events::Integer
     ;
-    light_yield::Integer = 40,
+    light_yield::Quantity = 40u"1/keV",
     rand_voxel_kwargs...
 )::Table
 
@@ -68,7 +99,7 @@ function log_p0_nominal_ar39(
     ex, ey, ez = h.edges
 
     # helper to compute bin center from edges and index
-    center(e, i) = (e[i] + e[i+1]) / 2
+    center(e, i) = (e[i] + e[i + 1]) / 2
 
     # build per-event single-step coordinates and energy deposits
     xloc = Vector{Vector{typeof(1.0u"m")}}(undef, n_events)
