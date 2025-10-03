@@ -23,7 +23,7 @@ each entry is `true` if no qualifying photon was observed,
 x0_data("l200-p13-r003-anp-20241217T094846Z-tier_evt.lh5", (:p13, :r003))
 ```
 """
-function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_000)::Table
+function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_000, exclude_unusable = false)::Table
     period, run = runsel
     chmap = CHANNELMAPS[period][run]
 
@@ -34,10 +34,14 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
         events = f["evt"][1:max_events].spms
 
         # we want to check if there is light for each event and channel
-        x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap))
-
         # map rawid directly to the column vector
-        rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap)
+        if exclude_unusable
+            x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap) if chmap[sipm].usable)
+            rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap if v.usable)
+        else
+            x0_cols = Dict(sipm => trues(first(size(events))) for sipm in keys(chmap))
+            rawid2col = Dict(v.rawid => x0_cols[k] for (k, v) in chmap)
+        end
 
         # FIXME: this is quite slow?
         for i in eachindex(events)
