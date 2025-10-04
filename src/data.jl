@@ -23,7 +23,12 @@ each entry is `true` if no qualifying photon was observed,
 x0_data("l200-p13-r003-anp-20241217T094846Z-tier_evt.lh5", (:p13, :r003))
 ```
 """
-function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_000, exclude_unusable = false)::Table
+function x0_data(
+    filename::AbstractString,
+    runsel::RunSelLike;
+    max_events::Integer = 10_000,
+    exclude_unusable::Bool = false
+)::Table
     period, run = runsel
     chmap = CHANNELMAPS[period][run]
 
@@ -57,7 +62,7 @@ function x0_data(filename::AbstractString, runsel::RunSelLike; max_events = 10_0
 
     # remove sipm channels marked as unusable
     if exclude_unusable
-        delete!(x0_cols, [k for (k, v) in chmap if v.usable == false])
+        delete!.(Ref(x0_cols), [k for (k, v) in chmap if !v.usable])
     end
 
     return Table(; x0_cols...)

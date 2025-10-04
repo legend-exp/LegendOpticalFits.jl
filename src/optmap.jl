@@ -17,7 +17,11 @@ Load a LEGEND-200 optical map from file.
 load_optical_map("./optmap.lh5", (:p13, :r001))
 ```
 """
-function load_optical_map(filename::AbstractString, runsel::RunSelLike; exclude_unusable = false)::OpticalMap
+function load_optical_map(
+    filename::AbstractString,
+    runsel::RunSelLike;
+    exclude_unusable::Bool = false
+)::OpticalMap
     period, run = runsel
     chmap = CHANNELMAPS[period][run]
     _detname = id -> rawid2detname(chmap, id)
