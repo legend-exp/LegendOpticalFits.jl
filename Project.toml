@@ -1,6 +1,6 @@
 name = "LegendOpticalFits"
 uuid = "bbb9fcaf-2b60-4c6b-9c8a-4fdd17999abf"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 BAT = "c0cd4b16-88b7-57fa-983b-ab80aecada7e"
