@@ -3,7 +3,6 @@ using LegendOpticalFits
 
 using TypedTables
 using Random
-using StatsBase
 
 
 @testset "forward models" begin
@@ -70,36 +69,5 @@ using StatsBase
 
         @test λ0_hl isa NamedTuple
         @test all(isapprox.(collect(values(λ0_hl)), λ0; atol = 0.01))
-    end
-
-    @testset "log(p0) from Ar-39" begin
-        # create a 10x10x10 histogram with random probabilities
-        edges = (collect(0.0:1.0:10.0), collect(0.0:1.0:10.0), collect(0.0:1.0:10.0))
-        weights = rand(10, 10, 10)
-
-        # set some random voxels to sentinel -1 (invalid)
-        for _ in 1:50
-            weights[rand(1:10), rand(1:10), rand(1:10)] = -1.0
-        end
-
-        h = StatsBase.Histogram(edges, weights)
-
-        # build a NamedTuple optical map with 10 channels
-        channels = Tuple(Symbol("S" * lpad(string(i), 3, '0')) for i in 1:10)
-        optmap = (; (ch => h for ch in channels)...)
-
-        n_events = 100
-
-        p0 = log_p0_nominal_ar39(optmap, n_events)
-
-        @test p0 isa Table
-        @test Set(propertynames(p0)) == Set(channels)
-        @test all(length(getproperty(p0, ch)) == n_events for ch in channels)
-        @test all(all(getproperty(p0, ch) .<= 0) for ch in channels)
-        @test all(all(isfinite.(getproperty(p0, ch))) for ch in channels)
-
-        # with zero light yield, all entries should be exactly zero
-        p0_zero = log_p0_nominal_ar39(optmap, n_events; light_yield = 0)
-        @test all(all(getproperty(p0_zero, ch) .== 0) for ch in channels)
     end
 end

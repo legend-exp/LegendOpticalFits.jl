@@ -5,7 +5,6 @@ using StatsBase
 using DensityInterface
 
 function mock_optmap(runsel)
-    # optmap = load_optical_map("map-merged-2cm-p13.lh5", runsel)
     edges = (collect(-0.7:0.02:0.7), collect(-0.7:0.02:0.7), collect(-1.89:0.02:1.89))
     weights = fill(2e-5, (70, 70, 189))
     h = StatsBase.Histogram(edges, weights)
