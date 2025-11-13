@@ -56,7 +56,7 @@ function detection_prob(h, coords...)
     idx   = map(searchsortedlast, h.edges, point)
 
     if any(((i, e),) -> i < 1 || i ≥ length(e), zip(idx, h.edges))
-        error("point $point out of bounds")
+        return zero(eltype(h.weights))
     end
 
     return h.weights[idx...]
