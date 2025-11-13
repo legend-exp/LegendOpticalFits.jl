@@ -41,7 +41,7 @@ function x0_data(
         # Repeat events if fewer than max_events
         n_events = length(events)
         if n_events < max_events
-            println("only $n_events events available. requested $max_events events --> copying events...")
+            @warn "only $n_events events available. requested $max_events events --> copying events..."
             reps = ceil(Int, max_events / n_events)
             events = vcat([events for _ in 1:reps]...)  # repeat
         end

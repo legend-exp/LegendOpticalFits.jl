@@ -51,12 +51,16 @@ Return the bin content of histogram `h` at the given coordinates
 `coords` (with units). Coordinates must be inside the histogram
 bounds, otherwise an error is thrown.
 """
-function detection_prob(h, coords...)
+function detection_prob(h, coords...; out_of_bounds_val=nothing)
     point = ustrip.(u"m", coords)
     idx   = map(searchsortedlast, h.edges, point)
 
     if any(((i, e),) -> i < 1 || i ≥ length(e), zip(idx, h.edges))
-        return zero(eltype(h.weights))
+        if out_of_bounds_val === nothing
+            error("point $point out of bounds")
+        else
+            return convert(eltype(h.weights), out_of_bounds_val)
+        end
     end
 
     return h.weights[idx...]
@@ -72,8 +76,8 @@ This is useful when `xss`, `yss`, and `zss` are
 `VectorOfVectors`, e.g. the coordinates of all hits for many events.
 Returns a vector of vectors of bin contents.
 """
-function detection_prob_vov(h, xss, yss, zss)
-    return map((xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs), xss, yss, zss)
+function detection_prob_vov(h, xss, yss, zss; out_of_bounds_val=nothing)
+    return map((xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs; out_of_bounds_val=out_of_bounds_val), xss, yss, zss)
 end
 
 """
