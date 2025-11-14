@@ -29,15 +29,16 @@ function load_optical_map(
     lh5open(filename) do file
         names = filter(s -> occursin(r"_\d{7}$", s), keys(file))
         rawids = [parse(Int, match(r"\d+", name).match) for name in names]
-        detnames = map(_detname, rawids)
+        raw_det = [(rawids[i], _detname(rawids[i])) for i in eachindex(rawids)]
 
         # optionally exclude unusable channels
         if exclude_unusable
-            detnames = filter(id -> chmap[id].usable == true, detnames)
+            raw_det = filter(pair -> chmap[pair[2]].usable == true, raw_det)
         end
 
-        order = sortperm(string.(detnames))
-        kvs = (detnames[i] => _read_histogram(file, "_$(rawids[i])/p_det") for i in order)
+        order = sortperm(string.(last.(raw_det)))
+        kvs = ( last(raw_det[i]) => LegendOpticalFits._read_histogram(file, "_$(first(raw_det[i]))/p_det") for i in order )
+
         return (; kvs...)
     end
 end
