@@ -37,7 +37,8 @@ function load_optical_map(
         end
 
         order = sortperm(string.(last.(raw_det)))
-        kvs = ( last(raw_det[i]) => LegendOpticalFits._read_histogram(file, "_$(first(raw_det[i]))/p_det") for i in order )
+        kvs =
+            (last(raw_det[i]) => LegendOpticalFits._read_histogram(file, "_$(first(raw_det[i]))/p_det") for i in order)
 
         return (; kvs...)
     end
@@ -52,7 +53,7 @@ Return the bin content of histogram `h` at the given coordinates
 `coords` (with units). Coordinates must be inside the histogram
 bounds, otherwise an error is thrown.
 """
-function detection_prob(h, coords...; out_of_bounds_val=nothing)
+function detection_prob(h, coords...; out_of_bounds_val = nothing)
     point = ustrip.(u"m", coords)
     idx   = map(searchsortedlast, h.edges, point)
 
@@ -77,8 +78,13 @@ This is useful when `xss`, `yss`, and `zss` are
 `VectorOfVectors`, e.g. the coordinates of all hits for many events.
 Returns a vector of vectors of bin contents.
 """
-function detection_prob_vov(h, xss, yss, zss; out_of_bounds_val=nothing)
-    return map((xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs; out_of_bounds_val=out_of_bounds_val), xss, yss, zss)
+function detection_prob_vov(h, xss, yss, zss; out_of_bounds_val = nothing)
+    return map(
+        (xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs; out_of_bounds_val = out_of_bounds_val),
+        xss,
+        yss,
+        zss
+    )
 end
 
 """
