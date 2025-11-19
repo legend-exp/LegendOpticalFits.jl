@@ -146,6 +146,31 @@ _chmap_p14_r006 = Dict(
     :S099 => (rawid = 1060804, usable = true, fiber = :OB25)
 )
 
+_chmap_p16_r000 = copy(_chmap_p14_r006)
+
+# update existing keys and add new ones
+merge!(
+    _chmap_p16_r000,
+    Dict(
+        # value changes
+        :S054 => (rawid = 1059203, usable = true, fiber = :OB12),
+        :S058 => (rawid = 1060800, usable = true, fiber = :IB11),
+        :S060 => (rawid = 1052802, usable = true, fiber = :IB15),
+        :S090 => (rawid = 1056002, usable = true, fiber = :IB03),
+        :S096 => (rawid = 1060802, usable = true, fiber = :IB13),
+        :S098 => (rawid = 1059204, usable = true, fiber = :OB19),
+        :S047 => (rawid = 1062403, usable = false, fiber = :OB18),
+
+        # additions
+        :S093 => (rawid = 1052805, usable = false, fiber = :OB06),
+        :S100 => (rawid = 1054400, usable = true, fiber = :OB07),
+        :S092 => (rawid = 1057602, usable = true, fiber = :OB09),
+        :S089 => (rawid = 1064005, usable = true, fiber = :OB34))
+)
+# remove specific entries from the p16 map
+for k in (:S027, :S028, :S030, :S097)
+    pop!(_chmap_p16_r000, k, nothing)
+end
 
 CHANNELMAPS = Dict(
     :p13 => Dict(
@@ -160,6 +185,22 @@ CHANNELMAPS = Dict(
     ),
     :p14 => Dict(
         :r006 => _chmap_p14_r006
+    ),
+    :p16 => Dict(
+        :r008 => _chmap_p16_r000,
+        :r009 => _chmap_p16_r000,
+        :r010 => _chmap_p16_r000,
+        :r011 => _chmap_p16_r000,
+        :r012 => _chmap_p16_r000,
+        :r013 => _chmap_p16_r000,
+        :r014 => _chmap_p16_r000,
+        :r015 => _chmap_p16_r000,
+        :r016 => _chmap_p16_r000,
+        :r017 => _chmap_p16_r000,
+        :r018 => _chmap_p16_r000,
+        :r019 => _chmap_p16_r000,
+        :r020 => _chmap_p16_r000,
+        :r021 => _chmap_p16_r000
     )
 )
 
