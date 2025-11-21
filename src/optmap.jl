@@ -24,23 +24,19 @@ function load_optical_map(
 )::OpticalMap
     period, run = runsel
     chmap = CHANNELMAPS[period][run]
-    _detname = id -> rawid2detname(chmap, id)
 
     lh5open(filename) do file
-        names = filter(s -> occursin(r"_\d{7}$", s), keys(file))
-        rawids = [parse(Int, match(r"\d+", name).match) for name in names]
-        raw_det = [(rawids[i], _detname(rawids[i])) for i in eachindex(rawids)]
+        names = keys(file["channels"])
 
         # optionally exclude unusable channels
         if exclude_unusable
-            raw_det = filter(pair -> chmap[pair[2]].usable == true, raw_det)
+            names = filter(id -> chmap[id].usable == true, names)
         end
-
-        order = sortperm(string.(last.(raw_det)))
-        kvs =
-            (last(raw_det[i]) => LegendOpticalFits._read_histogram(file, "_$(first(raw_det[i]))/p_det") for i in order)
+        order = sortperm(collect(string.(names)))
+        kvs = (names[i] => _read_histogram(file, "channels/$(names[i])/prob") for i in order)
 
         return (; kvs...)
+
     end
 end
 
