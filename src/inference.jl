@@ -1,6 +1,6 @@
 # here routines to perform inference on the optical model parameters
 """
-    λ0_vs_efficiency_curve(log_p0_nominal, x0_random_coin, channel; eps_range=range(0.0,1.0,length=101), multiplicity_thr=0, use_mc=false, n_rands=10)
+    compute_λ0_curve(log_p0_nominal, x0_random_coin, channel; eps_range=range(0.0,1.0,length=101), multiplicity_thr=0, use_mc=false, n_rands=10)
 
 Compute the per-channel no-light probability λ₀ as a function of a single
 channel's efficiency.
@@ -27,7 +27,7 @@ channel's efficiency.
 - `NamedTuple` with fields :eps (vector of efficiencies) and :λ0
   (vector of no-light probabilities evaluated at those efficiencies).
 """
-function λ0_vs_efficiency_curve(
+function compute_λ0_curve(
     log_p0_nominal::Table,
     x0_random_coin::Table,
     channel::Symbol;
@@ -78,29 +78,29 @@ function λ0_vs_efficiency_curve(
 end
 
 """
-    compute_λ0_curves(log_p0_nominal, x0_random_coin; eps_range=range(0.0,1.0,length=101), multiplicity_thr=0, use_mc=false, n_rands=10)
+    compute_λ0_curve_all(log_p0_nominal, x0_random_coin; eps_range=range(0.0,1.0,length=101), multiplicity_thr=0, use_mc=false, n_rands=10)
 
 Compute λ₀(eps) curves for every channel present in `log_p0_nominal`.
 
 Description
 - For each channel (columns of `log_p0_nominal`) evaluate the no-light
-  probability λ₀ across `eps_range` by calling `λ0_vs_efficiency_curve`.
+  probability λ₀ across `eps_range` by calling `compute_λ0_curve`.
 - The returned curves are suitable for locating the efficiency at which a
   measured λ₀ would be reproduced (e.g. by interpolation).
 
 Arguments
-- see above in description of `λ0_vs_efficiency_curve`
+- see above in description of `compute_λ0_curve`
 
 Returns
 - `Dict{Symbol, NamedTuple}` mapping each channel symbol to the NamedTuple
-  returned by `λ0_vs_efficiency_curve` (fields `:eps` and `:λ0`).
+  returned by `compute_λ0_curve` (fields `:eps` and `:λ0`).
 
 Notes
 - Channel order is derived from `columnnames(log_p0_nominal)`. Use that
   table to control which channels are computed and their ordering.
 
 """
-function compute_λ0_curves(
+function compute_λ0_curve_all(
     log_p0_nominal::Table,
     x0_random_coin::Table;
     eps_range = range(0.0, 1.0, length = 101),
@@ -109,14 +109,14 @@ function compute_λ0_curves(
     n_rands::Int = 10
 )
     if multiplicity_thr != 0
-        throw(ArgumentError("compute_λ0_curves assumes multiplicity_thr == 0 (channels independent)."))
+        throw(ArgumentError("compute_λ0_curve_all assumes multiplicity_thr == 0 (channels independent)."))
     end
 
     # derive channel list from the table column names
     ch_list = collect(columnnames(log_p0_nominal))
     results = Dict{Symbol,Any}()
     for ch in ch_list
-        results[ch] = λ0_vs_efficiency_curve(
+        results[ch] = compute_λ0_curve(
             log_p0_nominal,
             x0_random_coin,
             ch;
