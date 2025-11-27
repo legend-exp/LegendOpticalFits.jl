@@ -34,7 +34,9 @@ function log_p0_nominal(
     sim_data::Table,
     optmap::OpticalMap,
     ;
-    light_yield::Quantity = 51u"1/keV"
+    light_yield::Quantity = 51u"1/keV",
+    out_of_bounds_val = nothing,
+    map_undefined_val = nothing
 )::Table
     # handy references
     coords = (sim_data.xloc, sim_data.yloc, sim_data.zloc)
@@ -48,7 +50,15 @@ function log_p0_nominal(
 
     for ch in keys(optmap)
         # detection probability
-        ξ = detection_prob_vov(optmap[ch], coords...)
+        ξ = detection_prob_vov(optmap[ch], coords...; out_of_bounds_val = out_of_bounds_val)
+        # throw error if coordinates in voxel where map is not defined (=-1) or set ξ at that coordinate to unser specific value
+        if any(x -> x == -1, Iterators.flatten(ξ))
+            if map_undefined_val === nothing
+                error("coordinate(s) with undefined map")
+            else
+                ξ = [replace(v, -1 => map_undefined_val) for v in ξ]
+            end
+        end
         # log p0 for each step
         step_lp0 = map((_ξ, _n) -> -_ξ .* _n, ξ, n)
         # now sum over steps

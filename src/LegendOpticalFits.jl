@@ -24,5 +24,6 @@ include("models.jl")
 include("likelihood.jl")
 include("priors.jl")
 include("inference.jl")
+include("mock.jl")
 
 end

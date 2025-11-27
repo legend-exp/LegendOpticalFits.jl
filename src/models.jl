@@ -144,3 +144,103 @@ function _λ0_model_loops(
 
     return N0 ./ N
 end
+
+"""
+    analytical_λ0_curve(log_p0_nominal, x0_random_coin, channel; eps_range=range(0.0,1.0,length=101))
+
+Compute the per-channel no-light probability λ₀ as a function of a single
+channel's efficiency. 
+
+This analytical model computes the expectation per event 
+λ₀_jk = mean(p0_jk * x0_jk) with p0_jk = exp(log_p0_jk * ε) and x0_jk 
+the random coincidence indicators.
+
+# Arguments
+- `log_p0_nominal::Table`: table of log p0 values (events × channels).
+- `x0_random_coin::Table`: table of random-coincidence indicators (events × channels).
+- `channel::Symbol`: Symbol identifying the channel (must be present in
+  columnnames(log_p0_nominal)).
+- `eps_range`: efficiency values to evaluate (vector or range).
+
+# Returns
+- `NamedTuple` with fields :eps (vector of efficiencies) and :λ0
+  (vector of no-light probabilities evaluated at those efficiencies).
+
+# Notes
+  Can only be used if no multiplicity threshold is applied!
+"""
+function analytical_λ0_curve(
+    log_p0_nominal::Table,
+    x0_random_coin::Table,
+    channel::Symbol;
+    eps_range = range(0.0, 1.0, length = 101)
+)
+    # derive channel ordering from the provided `log_p0_nominal` table
+    order = collect(columnnames(log_p0_nominal))
+    log_p0, _ = _to_matrix(log_p0_nominal, order = order)
+    x0, _ = _to_matrix(x0_random_coin, order = order)
+
+    # resolve channel index (channel must be a Symbol and present in log_p0_nominal)
+    ch_idx = findfirst(==(channel), order)
+    if ch_idx === nothing
+        throw(ArgumentError("channel $channel not found in efficiencies keys"))
+    end
+
+    # columns for the requested channel
+    log_p0_col = view(log_p0, :, ch_idx)
+    x0_col = view(x0, :, ch_idx)
+
+    eps_vec = collect(eps_range)
+    n = length(eps_vec)
+    λ0s = Vector{Float64}(undef, n)
+    for (i, ε) in enumerate(eps_vec)
+        p0 = exp.(log_p0_col .* ε)
+        # analytic exact expectation
+        λ0s[i] = mean(p0 .* x0_col)
+    end
+
+    return (eps = eps_vec, λ0 = λ0s)
+end
+
+"""
+    analytical_λ0_curve_all(log_p0_nominal, x0_random_coin; eps_range=range(0.0,1.0,length=101))
+
+Compute λ₀(eps) curves for every channel present in `log_p0_nominal`.
+
+Description
+- For each channel (columns of `log_p0_nominal`) evaluate the no-light
+  probability λ₀ across `eps_range` by calling `compute_λ0_curve`.
+- The returned curves are suitable for locating the efficiency at which a
+  measured λ₀ would be reproduced (e.g. by interpolation).
+
+Arguments
+- see above in description of `compute_λ0_curve`
+
+Returns
+- `Dict{Symbol, NamedTuple}` mapping each channel symbol to the NamedTuple
+  returned by `compute_λ0_curve` (fields `:eps` and `:λ0`).
+
+Notes
+- Channel order is derived from `columnnames(log_p0_nominal)`. Use that
+  table to control which channels are computed and their ordering.
+
+"""
+function analytical_λ0_curve_all(
+    log_p0_nominal::Table,
+    x0_random_coin::Table;
+    eps_range = range(0.0, 1.0, length = 101)
+)
+    # derive channel list from the table column names
+    ch_list = collect(columnnames(log_p0_nominal))
+    results = Dict{Symbol,Any}()
+    for ch in ch_list
+        results[ch] = analytical_λ0_curve(
+            log_p0_nominal,
+            x0_random_coin,
+            ch;
+            eps_range = eps_range
+        )
+    end
+
+    return results
+end

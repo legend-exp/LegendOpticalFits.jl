@@ -24,21 +24,19 @@ function load_optical_map(
 )::OpticalMap
     period, run = runsel
     chmap = CHANNELMAPS[period][run]
-    _detname = id -> rawid2detname(chmap, id)
 
     lh5open(filename) do file
-        names = filter(s -> occursin(r"_\d{7}$", s), keys(file))
-        rawids = [parse(Int, match(r"\d+", name).match) for name in names]
-        detnames = map(_detname, rawids)
+        names = keys(file["channels"])
 
         # optionally exclude unusable channels
         if exclude_unusable
-            detnames = filter(id -> chmap[id].usable == true, detnames)
+            names = filter(id -> chmap[id].usable == true, names)
         end
+        order = sortperm(collect(string.(names)))
+        kvs = (names[i] => _read_histogram(file, "channels/$(names[i])/prob") for i in order)
 
-        order = sortperm(string.(detnames))
-        kvs = (detnames[i] => _read_histogram(file, "_$(rawids[i])/p_det") for i in order)
         return (; kvs...)
+
     end
 end
 
@@ -51,12 +49,16 @@ Return the bin content of histogram `h` at the given coordinates
 `coords` (with units). Coordinates must be inside the histogram
 bounds, otherwise an error is thrown.
 """
-function detection_prob(h, coords...)
+function detection_prob(h, coords...; out_of_bounds_val = nothing)
     point = ustrip.(u"m", coords)
     idx   = map(searchsortedlast, h.edges, point)
 
     if any(((i, e),) -> i < 1 || i ≥ length(e), zip(idx, h.edges))
-        error("point $point out of bounds")
+        if out_of_bounds_val === nothing
+            error("point $point out of bounds")
+        else
+            return convert(eltype(h.weights), out_of_bounds_val)
+        end
     end
 
     return h.weights[idx...]
@@ -72,8 +74,13 @@ This is useful when `xss`, `yss`, and `zss` are
 `VectorOfVectors`, e.g. the coordinates of all hits for many events.
 Returns a vector of vectors of bin contents.
 """
-function detection_prob_vov(h, xss, yss, zss)
-    return map((xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs), xss, yss, zss)
+function detection_prob_vov(h, xss, yss, zss; out_of_bounds_val = nothing)
+    return map(
+        (xs, ys, zs) -> detection_prob.(Ref(h), xs, ys, zs; out_of_bounds_val = out_of_bounds_val),
+        xss,
+        yss,
+        zss
+    )
 end
 
 """
