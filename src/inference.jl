@@ -1,4 +1,3 @@
-# here routines to perform inference on the optical model parameters
 """
     estimate_efficiencies_from_curves(curves, λ0_d)
 
@@ -65,3 +64,5 @@ function estimate_efficiencies_from_curves(
 
     return eff_est
 end
+
+export estimate_efficiencies_from_curves
