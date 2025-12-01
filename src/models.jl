@@ -244,3 +244,5 @@ function analytical_λ0_curve_all(
 
     return results
 end
+
+export analytical_λ0_curve, analytical_λ0_curve_all
