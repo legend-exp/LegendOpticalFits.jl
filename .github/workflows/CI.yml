@@ -21,7 +21,9 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.version == 'nightly' }}
+    # 'pre' tracks Julia prereleases and regularly breaks on upstream
+    # dependencies that do not support the new version yet
+    continue-on-error: ${{ matrix.version == 'nightly' || matrix.version == 'pre' }}
     strategy:
       fail-fast: false
       matrix:
@@ -61,7 +63,9 @@ jobs:
       - uses: codecov/codecov-action@v5
         if: matrix.version == '1' && matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
         with:
-          fail_ci_if_error: true
+          # Dependabot pull requests do not get repository secrets, so the
+          # upload has no token and would fail the whole job
+          fail_ci_if_error: ${{ github.actor != 'dependabot[bot]' }}
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
   docs:
@@ -78,7 +82,11 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Dependabot pull requests only get a read-only token and no
+          # DOCUMENTER_KEY, so pushing the preview to gh-pages fails. Leave
+          # both unset there: Documenter then builds the docs and skips
+          # deployment instead of erroring out.
+          GITHUB_TOKEN: ${{ github.actor != 'dependabot[bot]' && secrets.GITHUB_TOKEN || '' }}
           # Needed due to https://github.com/JuliaDocs/Documenter.jl/issues/1177
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+          DOCUMENTER_KEY: ${{ github.actor != 'dependabot[bot]' && secrets.DOCUMENTER_KEY || '' }}
           GKSwstype: 'nul'
