@@ -34,7 +34,7 @@ function λ0_model(
     n_rands::Int = 10
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
-    ϵk = keys(efficiencies);
+    ϵk = keys(efficiencies)
     ϵv = collect(values(efficiencies))
     log_p0, _ = _to_matrix(log_p0_nominal, order = ϵk)
     x0, _ = _to_matrix(x0_random_coin, order = ϵk)
