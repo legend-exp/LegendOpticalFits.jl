@@ -36,7 +36,7 @@ function x0_data(
 
     lh5open(filename) do f
         # only interested in SiPM data
-        events = f["evt"]
+        events = f["evt"][:]
 
         # Repeat events if fewer than max_events
         n_events = length(events)
@@ -47,7 +47,7 @@ function x0_data(
         end
 
         # Now safely truncate to exactly max_events
-        events = events[1:max_events].spms
+        events = events[1:max_events].spms[:]
 
         # we want to check if there is light for each event and channel
         # map rawid directly to the column vector

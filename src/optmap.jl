@@ -26,7 +26,7 @@ function load_optical_map(
     chmap = CHANNELMAPS[period][run]
 
     lh5open(filename) do file
-        names = keys(file["channels"])
+        names = Symbol.(keys(file.data_store["channels"]))
 
         # optionally exclude unusable channels
         if exclude_unusable
