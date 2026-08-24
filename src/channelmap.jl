@@ -9,7 +9,7 @@ _chmap_p13_r001 = Dict(
     :S017 => (rawid = 1054401, usable = true, fiber = :OB08),
     :S020 => (rawid = 1064000, usable = true, fiber = :OB29),
     :S023 => (rawid = 1057601, usable = true, fiber = :IB06),
-    :S024 => (rawid = 1057600, usable = true, fiber = :IB05),
+    :S024 => (rawid = 1057600, usable = false, fiber = :IB05),
     :S025 => (rawid = 1064003, usable = true, fiber = :OB32),
     :S026 => (rawid = 1064002, usable = true, fiber = :OB31),
     :S027 => (rawid = 1059203, usable = false, fiber = :OB12),
@@ -42,7 +42,7 @@ _chmap_p13_r001 = Dict(
     :S065 => (rawid = 1060805, usable = true, fiber = :OB26),
     :S067 => (rawid = 1056000, usable = false, fiber = :OB21),
     :S068 => (rawid = 1056001, usable = true, fiber = :OB22),
-    :S070 => (rawid = 1054405, usable = true, fiber = :IB02),
+    :S070 => (rawid = 1054405, usable = false, fiber = :IB02),
     :S071 => (rawid = 1054404, usable = true, fiber = :IB01),
     :S073 => (rawid = 1054403, usable = true, fiber = :IB18),
     :S080 => (rawid = 1064001, usable = true, fiber = :OB30),
@@ -55,7 +55,7 @@ _chmap_p13_r001 = Dict(
     :S094 => (rawid = 1059202, usable = true, fiber = :OB11),
     :S095 => (rawid = 1060803, usable = true, fiber = :IB14),
     :S096 => (rawid = 1060802, usable = true, fiber = :IB13),
-    :S098 => (rawid = 1059204, usable = true, fiber = :OB19),
+    :S098 => (rawid = 1059204, usable = false, fiber = :OB19),
     :S099 => (rawid = 1060804, usable = true, fiber = :OB25)
 )
 
@@ -70,8 +70,8 @@ merge!(
         :S008 => (rawid = 1059205, usable = true, fiber = :OB20),
         :S012 => (rawid = 1062405, usable = true, fiber = :OB16),
         :S024 => (rawid = 1057600, usable = false, fiber = :IB05),
-        :S058 => (rawid = 1060800, usable = true, fiber = :IB11),
         :S080 => (rawid = 1064001, usable = false, fiber = :OB30),
+        :S098 => (rawid = 1059204, usable = true, fiber = :OB19),
 
         # additions
         :S007 => (rawid = 1067205, usable = true, fiber = :OB04),
