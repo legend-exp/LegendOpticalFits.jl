@@ -36,7 +36,7 @@ function x0_data(
 
     lh5open(filename) do f
         # only interested in SiPM data
-        events = f["evt"]
+        events = f["evt"][:]
 
         # Repeat events if fewer than max_events
         n_events = length(events)
@@ -47,7 +47,7 @@ function x0_data(
         end
 
         # Now safely truncate to exactly max_events
-        events = events[1:max_events].spms
+        events = events[1:max_events].spms[:]
 
         # we want to check if there is light for each event and channel
         # map rawid directly to the column vector
@@ -57,9 +57,8 @@ function x0_data(
         # FIXME: this is quite slow, can do without for loops
         for i in eachindex(events)
             rawid = events[i].rawid
-            # we use the high pe threshold to avoid counting afterpulses
-            # this mask will also bring quality cuts and use the [-1, 5] us window
-            mask = events[i].is_trig_coin_pulse_high_thr
+            # this mask brings quality cuts and uses the [-1, 5] us window
+            mask = events[i].is_trig_coin_pulse
 
             # loop over channels
             for j in eachindex(rawid)
