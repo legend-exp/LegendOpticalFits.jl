@@ -19,6 +19,9 @@ All input data is keyed by detector name (a symbol)
   (event, channel). This is typically coming from a measurement.
 - `multiplicity_thr`: discard events with multiplicity below this threshold
   (optional, defaults to 0).
+- `multiplicity_max`: upper bound on the multiplicity, exclusive. Together with
+  `multiplicity_thr` this selects the half-open window
+  `multiplicity_thr <= M < multiplicity_max` (optional, defaults to no bound).
 - `n_rands`: average forward model results over this amount of random numbers.
 
 # Returns
@@ -31,6 +34,7 @@ function λ0_model(
     x0_random_coin::Table,
     ;
     multiplicity_thr::Int = 0,
+    multiplicity_max::Int = typemax(Int),
     n_rands::Int = 10
 )::NamedTuple
     # make sure order is consistent with provided scaling_factors
@@ -46,7 +50,10 @@ function λ0_model(
     rands = rand(rng, n_events, n_channels, n_rands)
 
     # call low-level routine
-    λ0 = _λ0_model_bulk_ops(ϵv, log_p0, x0, rands, multiplicity_thr = multiplicity_thr)
+    λ0 = _λ0_model_bulk_ops(
+        ϵv, log_p0, x0, rands,
+        multiplicity_thr = multiplicity_thr, multiplicity_max = multiplicity_max
+    )
 
     # re-label as a NamedTuple keyed by channel symbols
     return NamedTuple{ϵk}(Tuple(λ0))
@@ -66,7 +73,8 @@ function _λ0_model_bulk_ops(
     x0_random_coin::AbstractMatrix{<:Number},
     rands::AbstractArray{<:Number,3},
     ;
-    multiplicity_thr::Int = 0
+    multiplicity_thr::Int = 0,
+    multiplicity_max::Int = typemax(Int)
 )
     T = eltype(efficiencies)
 
@@ -85,8 +93,8 @@ function _λ0_model_bulk_ops(
     # compute the event multiplicity
     multiplicity = n_channels .- sum(drawn, dims = 2)
 
-    # and select above a threshold
-    weights = one(T) .* (multiplicity .>= multiplicity_thr)
+    # and select inside the multiplicity window
+    weights = one(T) .* ((multiplicity .>= multiplicity_thr) .* (multiplicity .< multiplicity_max))
 
     # calculate expectation for fraction of events with no light in each channel
     return vec(sum(drawn .* weights, dims = (1, 3))) / sum(weights)
