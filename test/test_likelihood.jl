@@ -47,7 +47,7 @@ using DensityInterface
 
     @testset "multiplicity windows" begin
         Random.seed!(1234)
-        
+
         nev_sim = 10_000
         nev_data = 4_000
 
