@@ -130,7 +130,8 @@ set of per-channel efficiencies `ε`.
 
 Each dataset is scored with the same per-channel, Gaussian-approximated binomial
 term as [`make_λ0_likelihood`](@ref), but restricted to its OWN multiplicity
-threshold `M ≥ mult_thr`, and the per-dataset log-likelihoods are summed.
+window `mult_thr ≤ M < mult_max`, and the per-dataset log-likelihoods are
+summed.
 Because each dataset contributes its own selected-event count `N` (which sets the
 Gaussian width `σ² = μ(1-μ)/N`), datasets with equal `N` carry equal statistical
 weight — the basis of a "balanced" design (size each dataset to the same `N`).
@@ -139,12 +140,20 @@ This is what allows a joint Ar-39 + calibration-source fit with one shared `ε`:
 e.g. Ar-39 (M ≥ 6) plus Cs and Th source selections (higher thresholds), each a
 separate entry in `datasets`.
 
+The same mechanism slices ONE run by multiplicity: pass it twice with disjoint
+windows, e.g. `mult_thr = 6, mult_max = 8` alongside `mult_thr = 15`, to ask
+whether a single `ε` reproduces both. Because each entry carries its own `x0`,
+sizing the two inputs independently is what gives the windows equal `N`, and
+hence equal statistical weight.
+
 # Arguments
 - `datasets`: a vector of NamedTuples, each with fields
     - `x0`      : data no-light indicator `Table` (events × channels);
     - `log_p0`  : simulation `log(p0)` `Table` (events × channels);
     - `x0_rc`   : random-coincidence no-light `Table`;
-    - `mult_thr`: multiplicity threshold (keep events with `M ≥ mult_thr`).
+    - `mult_thr`: lower multiplicity bound (keep events with `M ≥ mult_thr`);
+    - `mult_max`: OPTIONAL exclusive upper bound, so that a dataset can be a
+      slice `mult_thr ≤ M < mult_max`. Defaults to no upper bound.
   All datasets must share the same channel columns; the channel order (and hence
   the expected parameter names) is taken from `datasets[1].x0`.
 - `n_rands`, `device`: as in [`make_λ0_likelihood`](@ref).
@@ -164,6 +173,9 @@ function make_λ0_joint_likelihood(
     compiled = Any[]
     for ds in datasets
         thr = ds.mult_thr
+        # an upper multiplicity bound is optional, so that a dataset can also be
+        # a slice like 6 <= M < 8 rather than an open-ended threshold
+        mmax = hasproperty(ds, :mult_max) ? ds.mult_max : typemax(Int)
 
         log_p0, _ = _to_matrix(ds.log_p0, order = ϵ_order)
         x0_rc, _ = _to_matrix(ds.x0_rc, order = ϵ_order)
@@ -172,14 +184,17 @@ function make_λ0_joint_likelihood(
         n_events, n_channels = size(log_p0)
         rands = rand(eltype(log_p0), n_events, n_channels, n_rands)
 
-        # data no-light fractions above the threshold and the selected-event count N
-        λ0, N_ev = λ0_data(ds.x0, multiplicity_thr = thr)
+        # data no-light fractions inside the window and the selected-event count N
+        λ0, N_ev = λ0_data(ds.x0, multiplicity_thr = thr, multiplicity_max = mmax)
         data = [λ0[k] for k in ϵ_order]
 
-        _model(ϵ) = _λ0_model_bulk_ops(ϵ, log_p0, float_x0_rc, rands, multiplicity_thr = thr)
+        _model(ϵ) = _λ0_model_bulk_ops(
+            ϵ, log_p0, float_x0_rc, rands,
+            multiplicity_thr = thr, multiplicity_max = mmax
+        )
         _model_on_dev = on_device(_model, device, rand(eltype(log_p0), n_channels))
 
-        @info "joint dataset: nev=$n_events M>=$thr N_data=$N_ev"
+        @info "joint dataset: nev=$n_events M in [$thr, $mmax) N_data=$N_ev"
         push!(compiled, (_model_on_dev, data, N_ev))
     end
 

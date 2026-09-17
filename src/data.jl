@@ -81,7 +81,7 @@ end
 export x0_data
 
 """
-    λ0_data(x0; multiplicity_thr=0) -> NamedTuple
+    λ0_data(x0; multiplicity_thr=0, multiplicity_max=typemax(Int)) -> NamedTuple
 
 Compute per–channel no-light fractions from a boolean `Table` of events.
 
@@ -90,13 +90,21 @@ Compute per–channel no-light fractions from a boolean `Table` of events.
   to an event; entries are `Bool` indicating whether no qualifying photon was observed in the channel.
 - `multiplicity_thr`: minimum number of channels with light per event required
   for the event to be considered. Defaults to `0`.
+- `multiplicity_max`: upper bound on the multiplicity, exclusive. Together with
+  `multiplicity_thr` this selects the half-open window
+  `multiplicity_thr <= M < multiplicity_max`. Defaults to `typemax(Int)`, i.e.
+  no upper bound.
 
 # Returns
 A `NamedTuple` with one field per channel containing the fraction of
 selected events in which that channel had no light, and the total number of events
-passing the multiplicity threshold.
+inside the multiplicity window.
 """
-function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Integer}
+function λ0_data(
+    x0::Table;
+    multiplicity_thr::Int = 0,
+    multiplicity_max::Int = typemax(Int)
+)::Tuple{NamedTuple,Integer}
     # compute multiplicity per row
     # NOTE: we use floats so this function also works with asimov data sets!
     n_channels = length(columns(x0))
@@ -106,9 +114,9 @@ function λ0_data(x0::Table; multiplicity_thr::Int = 0)::Tuple{NamedTuple,Intege
         mult .-= col
     end
 
-    keep = mult .>= multiplicity_thr
+    keep = (mult .>= multiplicity_thr) .& (mult .< multiplicity_max)
     nsel = count(keep)
-    nsel == 0 && error("no events pass multiplicity_thr=$multiplicity_thr")
+    nsel == 0 && error("no events in multiplicity window [$multiplicity_thr, $multiplicity_max)")
 
     # build NamedTuple of fractions
     λ0 = NamedTuple{columnnames(x0)}(map(col -> sum(col[keep]) / nsel, columns(x0))), nsel
