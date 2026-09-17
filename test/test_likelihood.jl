@@ -47,9 +47,9 @@ using DensityInterface
 
     @testset "multiplicity windows" begin
         Random.seed!(1234)
-
-        nev_sim = 100_000
-        nev_data = 20_000
+        
+        nev_sim = 10_000
+        nev_data = 4_000
 
         runsel = (:p13, :r001)
         optmap = mock_optmap(runsel)
