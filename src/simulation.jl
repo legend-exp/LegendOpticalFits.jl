@@ -31,7 +31,7 @@ log_p0_nominal(sim_data, optmap)
 ```
 """
 function log_p0_nominal(
-    sim_data::Table,
+    sim_data,
     optmap::OpticalMap,
     ;
     light_yield::Quantity = 51u"1/keV",
